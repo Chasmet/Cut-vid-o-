@@ -91,13 +91,13 @@ public final class SavedVideosActivity extends AppCompatActivity {
     private void shareVideo(SavedVideo video) {
         Intent intent = new Intent(Intent.ACTION_SEND)
                 .setType("video/mp4")
-                .putExtra(Intent.EXTRA_STREAM, video.getUri())
-                .setClipData(ClipData.newUri(
-                        getContentResolver(),
-                        video.getName(),
-                        video.getUri()
-                ))
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                .putExtra(Intent.EXTRA_STREAM, video.getUri());
+        intent.setClipData(ClipData.newUri(
+                getContentResolver(),
+                video.getName(),
+                video.getUri()
+        ));
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         try {
             startActivity(Intent.createChooser(intent, getString(R.string.share_video)));
         } catch (ActivityNotFoundException error) {
@@ -115,4 +115,3 @@ public final class SavedVideosActivity extends AppCompatActivity {
         super.onDestroy();
     }
 }
-
