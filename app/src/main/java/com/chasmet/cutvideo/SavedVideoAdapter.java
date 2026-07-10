@@ -1,12 +1,14 @@
 package com.chasmet.cutvideo;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Size;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -22,6 +24,12 @@ import java.util.concurrent.Executors;
 public final class SavedVideoAdapter
         extends RecyclerView.Adapter<SavedVideoAdapter.VideoViewHolder> {
 
+    private static final String PREFS_NAME = "video_share_tracking";
+    private static final String PLATFORM_YOUTUBE = "youtube";
+    private static final String PLATFORM_TIKTOK = "tiktok";
+    private static final String PLATFORM_INSTAGRAM = "instagram";
+    private static final String PLATFORM_X = "x";
+
     public interface Actions {
         void open(SavedVideo video);
 
@@ -30,6 +38,7 @@ public final class SavedVideoAdapter
 
     private final Context context;
     private final Actions actions;
+    private final SharedPreferences sharePreferences;
     private final ExecutorService thumbnailExecutor = Executors.newFixedThreadPool(2);
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final List<SavedVideo> videos = new ArrayList<>();
@@ -37,6 +46,7 @@ public final class SavedVideoAdapter
     public SavedVideoAdapter(Context context, Actions actions) {
         this.context = context.getApplicationContext();
         this.actions = actions;
+        this.sharePreferences = this.context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     }
 
     public void submit(List<SavedVideo> newVideos) {
@@ -60,18 +70,44 @@ public final class SavedVideoAdapter
     public void onBindViewHolder(@NonNull VideoViewHolder holder, int position) {
         SavedVideo video = videos.get(position);
         String uriTag = video.getUri().toString();
+
         holder.binding.nameText.setText(video.getName());
         holder.binding.detailsText.setText(context.getString(
                 R.string.file_details,
                 TimeFormatter.duration(video.getDurationMs()),
                 TimeFormatter.fileSize(video.getSizeBytes())
         ));
+
         holder.binding.thumbnail.setTag(uriTag);
         holder.binding.thumbnail.setImageResource(R.drawable.ic_video);
         holder.binding.openButton.setOnClickListener(view -> actions.open(video));
         holder.binding.shareButton.setOnClickListener(view -> actions.share(video));
-        holder.binding.getRoot().setOnClickListener(view -> actions.open(video));
+        holder.binding.videoInfoRow.setOnClickListener(view -> actions.open(video));
+
+        bindTrackingCheckBox(holder.binding.youtubeCheck, uriTag, PLATFORM_YOUTUBE);
+        bindTrackingCheckBox(holder.binding.tiktokCheck, uriTag, PLATFORM_TIKTOK);
+        bindTrackingCheckBox(holder.binding.instagramCheck, uriTag, PLATFORM_INSTAGRAM);
+        bindTrackingCheckBox(holder.binding.xCheck, uriTag, PLATFORM_X);
+
+        holder.binding.youtubeTracker.setOnClickListener(view -> holder.binding.youtubeCheck.toggle());
+        holder.binding.tiktokTracker.setOnClickListener(view -> holder.binding.tiktokCheck.toggle());
+        holder.binding.instagramTracker.setOnClickListener(view -> holder.binding.instagramCheck.toggle());
+        holder.binding.xTracker.setOnClickListener(view -> holder.binding.xCheck.toggle());
+
         loadThumbnail(holder, video, uriTag);
+    }
+
+    private void bindTrackingCheckBox(CheckBox checkBox, String videoKey, String platform) {
+        String preferenceKey = buildPreferenceKey(videoKey, platform);
+        checkBox.setOnCheckedChangeListener(null);
+        checkBox.setChecked(sharePreferences.getBoolean(preferenceKey, false));
+        checkBox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                sharePreferences.edit().putBoolean(preferenceKey, isChecked).apply()
+        );
+    }
+
+    private String buildPreferenceKey(String videoKey, String platform) {
+        return platform + "|" + videoKey;
     }
 
     private void loadThumbnail(VideoViewHolder holder, SavedVideo video, String expectedTag) {
@@ -103,6 +139,10 @@ public final class SavedVideoAdapter
     public void onViewRecycled(@NonNull VideoViewHolder holder) {
         holder.binding.thumbnail.setTag(null);
         holder.binding.thumbnail.setImageResource(R.drawable.ic_video);
+        holder.binding.youtubeCheck.setOnCheckedChangeListener(null);
+        holder.binding.tiktokCheck.setOnCheckedChangeListener(null);
+        holder.binding.instagramCheck.setOnCheckedChangeListener(null);
+        holder.binding.xCheck.setOnCheckedChangeListener(null);
         super.onViewRecycled(holder);
     }
 
@@ -119,4 +159,3 @@ public final class SavedVideoAdapter
         }
     }
 }
-
