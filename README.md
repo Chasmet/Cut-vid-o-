@@ -16,14 +16,12 @@ Application Android française pour découper une vidéo directement sur le tél
 
 ## Télécharger l'APK depuis un téléphone
 
-1. Ouvrir l'onglet **Actions** du dépôt GitHub.
-2. Ouvrir la dernière exécution verte nommée **Construire l'APK Android**.
-3. Descendre jusqu'à **Artifacts**.
-4. Appuyer sur **Cut-Video-APK**.
-5. Décompresser le fichier téléchargé.
-6. Installer `Cut-Video-v1.0.0.apk`.
+1. Ouvrir la page **Releases** du dépôt GitHub.
+2. Ouvrir la version **Cut Vidéo v1.0.0**.
+3. Appuyer sur `Cut-Video-v1.0.0.apk`.
+4. Ouvrir le fichier téléchargé pour l'installer.
 
-L'APK de cette première version est un APK de test installable directement. Android peut demander d'autoriser temporairement l'installation depuis le navigateur ou l'application GitHub.
+En secours, chaque compilation verte conserve aussi une archive **Cut-Video-APK** pendant 90 jours dans l'onglet **Actions**. L'APK de cette première version est installable directement. Android peut demander d'autoriser temporairement l'installation depuis le navigateur ou l'application GitHub.
 
 ## Confidentialité
 
@@ -49,4 +47,3 @@ L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vi
 - MediaStore pour publier les MP4 ;
 - tests unitaires du calcul des intervalles ;
 - compilation automatique par GitHub Actions.
-
