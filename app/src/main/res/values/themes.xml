@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.CutVideo" parent="Theme.AppCompat.NoActionBar">
+        <item name="colorPrimary">@color/teal</item>
+        <item name="colorPrimaryDark">@color/teal_dark</item>
+        <item name="colorAccent">@color/teal</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:colorAccent">@color/teal</item>
+        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>
+
