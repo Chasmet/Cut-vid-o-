@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cut Vidéo</string>
+    <string name="home_title">CUT VIDÉO</string>
+    <string name="home_subtitle">Découpe tes vidéos rapidement, directement sur ton téléphone.</string>
+    <string name="import_video">IMPORTER UNE VIDÉO</string>
+    <string name="import_video_subtitle">Choisir une vidéo dans Google Photos</string>
+    <string name="saved_videos">MES VIDÉOS</string>
+    <string name="saved_videos_subtitle">Voir et partager les vidéos terminées</string>
+    <string name="privacy_note">100 %% hors ligne • Sans publicité • Aucun compte</string>
+    <string name="editor_title">Découper la vidéo</string>
+    <string name="save">SAUVEGARDER</string>
+    <string name="quick_split">DÉCOUPE RAPIDE</string>
+    <string name="custom_split">PERSONNALISÉ</string>
+    <string name="trim">ROGNER</string>
+    <string name="quick_title">Choisir la durée de chaque morceau</string>
+    <string name="custom_title">Durée personnalisée</string>
+    <string name="seconds">secondes</string>
+    <string name="trim_title">Choisir le début et la fin</string>
+    <string name="start">Début</string>
+    <string name="end">Fin</string>
+    <string name="export_video">DÉCOUPER ET ENREGISTRER</string>
+    <string name="video_loading">Analyse de la vidéo…</string>
+    <string name="segments_info">%1$d morceau(x) d’environ %2$d secondes</string>
+    <string name="trim_info">Extrait de %1$s à %2$s • durée %3$s</string>
+    <string name="exporting">Création des vidéos…</string>
+    <string name="export_progress">Morceau %1$d sur %2$d</string>
+    <string name="cancel">ANNULER</string>
+    <string name="done_title">C’est terminé</string>
+    <string name="done_message">%1$d vidéo(s) enregistrée(s) dans Films/CutVideo.</string>
+    <string name="view_videos">VOIR MES VIDÉOS</string>
+    <string name="close">FERMER</string>
+    <string name="error_title">Impossible de continuer</string>
+    <string name="invalid_video">Cette vidéo ne peut pas être lue. Essaie avec une autre vidéo.</string>
+    <string name="invalid_duration">Entre une durée valide.</string>
+    <string name="export_error">La création a échoué : %1$s</string>
+    <string name="saved_title">Mes vidéos</string>
+    <string name="empty_saved">Aucune vidéo enregistrée pour le moment.</string>
+    <string name="open_video">Ouvrir</string>
+    <string name="share_video">Partager</string>
+    <string name="back">Retour</string>
+    <string name="video_icon">Icône vidéo</string>
+    <string name="app_logo">Logo Cut Vidéo</string>
+    <string name="play_video">Lire la vidéo</string>
+    <string name="file_details">%1$s • %2$s</string>
+    <string name="picker_cancelled">Aucune vidéo sélectionnée.</string>
+</resources>
+

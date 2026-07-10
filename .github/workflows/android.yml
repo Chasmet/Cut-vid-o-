@@ -1,0 +1,61 @@
+name: Construire l'APK Android
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Tests et APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Récupérer le projet
+        uses: actions/checkout@v4
+
+      - name: Installer Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Installer le SDK Android
+        uses: android-actions/setup-android@v3
+
+      - name: Installer Android 16
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Installer Gradle 9.4.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.4.1'
+
+      - name: Tester, analyser et compiler
+        run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
+
+      - name: Préparer le fichier à télécharger
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.0.0.apk
+          cd dist
+          sha256sum Cut-Video-v1.0.0.apk > Cut-Video-v1.0.0.apk.sha256
+
+      - name: Publier l'APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cut-Video-APK
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+

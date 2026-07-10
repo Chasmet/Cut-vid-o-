@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background">#111414</color>
+    <color name="surface">#1D2222</color>
+    <color name="surface_alt">#252B2B</color>
+    <color name="teal">#00C7B0</color>
+    <color name="teal_dark">#00796B</color>
+    <color name="teal_pressed">#00A995</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="text_secondary">#B7C0BF</color>
+    <color name="divider">#3E4645</color>
+    <color name="danger">#FF6B6B</color>
+    <color name="transparent">#00000000</color>
+</resources>
+
