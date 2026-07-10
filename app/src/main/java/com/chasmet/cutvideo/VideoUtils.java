@@ -6,6 +6,7 @@ import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.provider.OpenableColumns;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -28,7 +29,7 @@ public final class VideoUtils {
         } finally {
             try {
                 retriever.release();
-            } catch (RuntimeException ignored) {
+            } catch (IOException | RuntimeException ignored) {
                 // Certains codecs défectueux peuvent aussi échouer pendant la libération.
             }
         }
@@ -72,4 +73,3 @@ public final class VideoUtils {
         return "CutVideo_" + safeName + "_" + timestamp;
     }
 }
-
