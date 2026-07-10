@@ -6,7 +6,9 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 
+import androidx.annotation.OptIn;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.util.UnstableApi;
 import androidx.media3.transformer.Composition;
 import androidx.media3.transformer.EditedMediaItem;
 import androidx.media3.transformer.ExportException;
@@ -24,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Exporte les morceaux l'un après l'autre afin de limiter la mémoire et la chauffe du téléphone. */
+@OptIn(markerClass = UnstableApi.class)
 public final class VideoExportManager {
 
     public interface Listener {
@@ -206,4 +209,3 @@ public final class VideoExportManager {
         }
     }
 }
-
