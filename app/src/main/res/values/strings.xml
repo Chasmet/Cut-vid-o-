@@ -44,5 +44,14 @@
     <string name="play_video">Lire la vidéo</string>
     <string name="file_details">%1$s • %2$s</string>
     <string name="picker_cancelled">Aucune vidéo sélectionnée.</string>
-</resources>
 
+    <string name="share_tracking_title">Suivi des partages</string>
+    <string name="youtube_icon">▶</string>
+    <string name="tiktok_icon">♪</string>
+    <string name="instagram_icon">◎</string>
+    <string name="x_icon">X</string>
+    <string name="mark_youtube_shared">Marquer comme partagé sur YouTube</string>
+    <string name="mark_tiktok_shared">Marquer comme partagé sur TikTok</string>
+    <string name="mark_instagram_shared">Marquer comme partagé sur Instagram</string>
+    <string name="mark_x_shared">Marquer comme partagé sur X</string>
+</resources>
