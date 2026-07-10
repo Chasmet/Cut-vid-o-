@@ -1,74 +1,225 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="116dp"
+    android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
     android:background="@drawable/bg_card"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
+    android:orientation="vertical"
     android:padding="10dp">
 
-    <ImageView
-        android:id="@+id/thumbnail"
-        android:layout_width="96dp"
-        android:layout_height="96dp"
-        android:background="@color/surface_alt"
-        android:contentDescription="@string/play_video"
-        android:scaleType="centerCrop"
-        android:src="@drawable/ic_video" />
-
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_marginStart="12dp"
-        android:layout_weight="1"
+        android:id="@+id/videoInfoRow"
+        android:layout_width="match_parent"
+        android:layout_height="104dp"
+        android:clickable="true"
+        android:contentDescription="@string/play_video"
+        android:focusable="true"
         android:gravity="center_vertical"
-        android:orientation="vertical">
+        android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/nameText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="middle"
-            android:fontFamily="sans-serif-medium"
-            android:maxLines="2"
-            android:textColor="@color/white"
-            android:textSize="15sp" />
-
-        <TextView
-            android:id="@+id/detailsText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+        <ImageView
+            android:id="@+id/thumbnail"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:background="@color/surface_alt"
+            android:contentDescription="@string/play_video"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_video" />
 
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="7dp"
-            android:gravity="end"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/nameText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="middle"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="2"
+                android:textColor="@color/white"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/detailsText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="end"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/openButton"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@color/transparent"
+                    android:contentDescription="@string/open_video"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_play" />
+
+                <ImageButton
+                    android:id="@+id/shareButton"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@color/transparent"
+                    android:contentDescription="@string/share_video"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_share" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="4dp"
+        android:background="@color/divider" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:text="@string/share_tracking_title"
+        android:textColor="@color/teal"
+        android:textSize="12sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:weightSum="4">
+
+        <LinearLayout
+            android:id="@+id/youtubeTracker"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:contentDescription="@string/mark_youtube_shared"
+            android:focusable="true"
+            android:gravity="center"
             android:orientation="horizontal">
 
-            <ImageButton
-                android:id="@+id/openButton"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:background="@color/transparent"
-                android:contentDescription="@string/open_video"
-                android:padding="9dp"
-                android:src="@drawable/ic_play" />
+            <TextView
+                android:id="@+id/youtubeIcon"
+                android:layout_width="32dp"
+                android:layout_height="28dp"
+                android:background="@drawable/bg_youtube_icon"
+                android:gravity="center"
+                android:text="@string/youtube_icon"
+                android:textColor="@color/white"
+                android:textSize="16sp" />
 
-            <ImageButton
-                android:id="@+id/shareButton"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:layout_marginStart="6dp"
-                android:background="@color/transparent"
-                android:contentDescription="@string/share_video"
-                android:padding="9dp"
-                android:src="@drawable/ic_share" />
+            <CheckBox
+                android:id="@+id/youtubeCheck"
+                android:layout_width="40dp"
+                android:layout_height="48dp"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:contentDescription="@string/mark_youtube_shared"
+                android:gravity="center" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tiktokTracker"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:contentDescription="@string/mark_tiktok_shared"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tiktokIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_tiktok_icon"
+                android:gravity="center"
+                android:text="@string/tiktok_icon"
+                android:textColor="@color/white"
+                android:textSize="20sp" />
+
+            <CheckBox
+                android:id="@+id/tiktokCheck"
+                android:layout_width="40dp"
+                android:layout_height="48dp"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:contentDescription="@string/mark_tiktok_shared"
+                android:gravity="center" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/instagramTracker"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:contentDescription="@string/mark_instagram_shared"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/instagramIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_instagram_icon"
+                android:gravity="center"
+                android:text="@string/instagram_icon"
+                android:textColor="@color/white"
+                android:textSize="21sp" />
+
+            <CheckBox
+                android:id="@+id/instagramCheck"
+                android:layout_width="40dp"
+                android:layout_height="48dp"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:contentDescription="@string/mark_instagram_shared"
+                android:gravity="center" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/xTracker"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:contentDescription="@string/mark_x_shared"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/xIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_x_icon"
+                android:gravity="center"
+                android:text="@string/x_icon"
+                android:textColor="@color/white"
+                android:textSize="18sp" />
+
+            <CheckBox
+                android:id="@+id/xCheck"
+                android:layout_width="40dp"
+                android:layout_height="48dp"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:contentDescription="@string/mark_x_shared"
+                android:gravity="center" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
-
