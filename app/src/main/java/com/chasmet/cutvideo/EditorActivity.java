@@ -18,17 +18,20 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.common.util.UnstableApi;
 import androidx.media3.exoplayer.ExoPlayer;
 
 import com.chasmet.cutvideo.databinding.ActivityEditorBinding;
 
 import java.util.List;
 
+@OptIn(markerClass = UnstableApi.class)
 public final class EditorActivity extends AppCompatActivity {
 
     public static final String EXTRA_VIDEO_URI = "video_uri";
@@ -584,4 +587,3 @@ public final class EditorActivity extends AppCompatActivity {
         }
     }
 }
-
