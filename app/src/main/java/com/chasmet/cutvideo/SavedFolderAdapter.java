@@ -19,6 +19,8 @@ public final class SavedFolderAdapter
     public interface Actions {
         void openFolder(SavedVideoFolder folder);
 
+        void renameFolder(SavedVideoFolder folder);
+
         void shareFolder(SavedVideoFolder folder);
     }
 
@@ -65,6 +67,7 @@ public final class SavedFolderAdapter
         holder.binding.folderDateText.setText(date);
         holder.binding.folderDateText.setVisibility(date.isEmpty() ? View.GONE : View.VISIBLE);
         holder.binding.getRoot().setOnClickListener(view -> actions.openFolder(folder));
+        holder.binding.renameFolderButton.setOnClickListener(view -> actions.renameFolder(folder));
         holder.binding.shareFolderButton.setOnClickListener(view -> actions.shareFolder(folder));
     }
 
@@ -82,4 +85,3 @@ public final class SavedFolderAdapter
         }
     }
 }
-

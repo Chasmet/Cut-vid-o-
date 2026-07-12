@@ -2,7 +2,7 @@
 
 Application Android française pour découper une vidéo directement sur le téléphone, sans compte, sans publicité et sans serveur.
 
-## Fonctions de la version 1.2
+## Fonctions de la version 1.2.1
 
 - sélection sécurisée depuis Google Photos ou la galerie Android ;
 - aperçu vidéo avec lecture, pause et déplacement dans la vidéo ;
@@ -12,6 +12,8 @@ Application Android française pour découper une vidéo directement sur le tél
 - export MP4 morceau par morceau pour limiter la mémoire utilisée ;
 - création d'un sous-dossier unique pour chaque vidéo traitée dans `Films/CutVideo` ;
 - écran « Mes vidéos » organisé par dossiers, puis par morceaux ;
+- renommage durable des dossiers directement depuis « Mes vidéos » ;
+- renommage des fichiers MP4 à l’intérieur de chaque dossier ;
 - conservation des anciens exports dans le dossier virtuel « Anciennes vidéos » ;
 - sélection de plusieurs morceaux, sélection de tout un dossier et partage groupé ;
 - partage direct de tous les fichiers d'un dossier ;
@@ -23,8 +25,8 @@ Application Android française pour découper une vidéo directement sur le tél
 ## Télécharger l'APK depuis un téléphone
 
 1. Ouvrir la page **Releases** du dépôt GitHub.
-2. Ouvrir la version **Cut Vidéo v1.2.0**.
-3. Appuyer sur `Cut-Video-v1.2.0.apk`.
+2. Ouvrir la version **Cut Vidéo v1.2.1**.
+3. Appuyer sur `Cut-Video-v1.2.1.apk`.
 4. Ouvrir le fichier téléchargé pour l'installer.
 
 En secours, chaque compilation verte conserve aussi une archive **Cut-Video-APK** pendant 90 jours dans l'onglet **Actions**. Android peut demander d'autoriser temporairement l'installation depuis le navigateur ou l'application GitHub.

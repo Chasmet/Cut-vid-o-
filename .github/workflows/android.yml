@@ -47,9 +47,9 @@ jobs:
       - name: Préparer le fichier à télécharger
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.2.0.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.2.1.apk
           cd dist
-          sha256sum Cut-Video-v1.2.0.apk > Cut-Video-v1.2.0.apk.sha256
+          sha256sum Cut-Video-v1.2.1.apk > Cut-Video-v1.2.1.apk.sha256
 
       - name: Publier l'APK
         uses: actions/upload-artifact@v4
@@ -64,16 +64,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view v1.2.0 > /dev/null 2>&1; then
-            gh release upload v1.2.0 \
-              dist/Cut-Video-v1.2.0.apk \
-              dist/Cut-Video-v1.2.0.apk.sha256 \
+          if gh release view v1.2.1 > /dev/null 2>&1; then
+            gh release upload v1.2.1 \
+              dist/Cut-Video-v1.2.1.apk \
+              dist/Cut-Video-v1.2.1.apk.sha256 \
               --clobber
           else
-            gh release create v1.2.0 \
-              dist/Cut-Video-v1.2.0.apk \
-              dist/Cut-Video-v1.2.0.apk.sha256 \
-              --title "Cut Vidéo v1.2.0" \
-              --notes "Mise à jour importante : un sous-dossier par vidéo traitée dans Films/CutVideo, navigation par dossiers dans Mes vidéos, sélection multiple, tout sélectionner et partage groupé. Le suivi YouTube, TikTok, Instagram et X reste disponible." \
+            gh release create v1.2.1 \
+              dist/Cut-Video-v1.2.1.apk \
+              dist/Cut-Video-v1.2.1.apk.sha256 \
+              --title "Cut Vidéo v1.2.1" \
+              --notes "Ajout du renommage : le crayon permet de donner un nom clair à chaque dossier dans Mes vidéos et de renommer chaque morceau MP4. Le positionnement de l'écran sous la barre d'état est également corrigé sur Android récent." \
               --latest
           fi

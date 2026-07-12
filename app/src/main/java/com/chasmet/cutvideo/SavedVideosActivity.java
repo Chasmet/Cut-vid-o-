@@ -1,15 +1,23 @@
 package com.chasmet.cutvideo;
 
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.View;
+import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.chasmet.cutvideo.databinding.ActivitySavedVideosBinding;
@@ -20,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 public final class SavedVideosActivity extends AppCompatActivity {
 
@@ -31,6 +40,7 @@ public final class SavedVideosActivity extends AppCompatActivity {
     private List<SavedVideoFolder> folders = new ArrayList<>();
     private String currentFolderKey;
     private boolean selectionMode;
+    private boolean storageOperationRunning;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +48,7 @@ public final class SavedVideosActivity extends AppCompatActivity {
         binding = ActivitySavedVideosBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        configureSystemInsets();
         binding.videosList.setLayoutManager(new LinearLayoutManager(this));
         configureAdapters();
         configureActions();
@@ -49,6 +60,11 @@ public final class SavedVideosActivity extends AppCompatActivity {
             @Override
             public void openFolder(SavedVideoFolder folder) {
                 showFolder(folder);
+            }
+
+            @Override
+            public void renameFolder(SavedVideoFolder folder) {
+                promptRenameFolder(folder);
             }
 
             @Override
@@ -64,6 +80,11 @@ public final class SavedVideosActivity extends AppCompatActivity {
             }
 
             @Override
+            public void rename(SavedVideo video) {
+                promptRenameVideo(video);
+            }
+
+            @Override
             public void share(SavedVideo video) {
                 shareVideos(Collections.singletonList(video));
             }
@@ -73,6 +94,18 @@ public final class SavedVideosActivity extends AppCompatActivity {
                 updateSelectionUi(selectedCount, totalCount);
             }
         });
+    }
+
+    private void configureSystemInsets() {
+        if (Build.VERSION.SDK_INT < 35) {
+            return;
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (view, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            return windowInsets;
+        });
+        ViewCompat.requestApplyInsets(binding.getRoot());
     }
 
     private void configureActions() {
@@ -222,6 +255,108 @@ public final class SavedVideosActivity extends AppCompatActivity {
         }
     }
 
+    private void promptRenameFolder(SavedVideoFolder folder) {
+        showRenameDialog(
+                R.string.rename_folder,
+                folderTitle(folder),
+                newName -> runStorageOperation(
+                        () -> MediaStoreRepository.renameFolder(
+                                this,
+                                folder,
+                                VideoFolderUtils.renamedFolderKey(folder.getKey(), newName)
+                        ),
+                        R.string.folder_renamed
+                )
+        );
+    }
+
+    private void promptRenameVideo(SavedVideo video) {
+        showRenameDialog(
+                R.string.rename_video,
+                VideoFolderUtils.editableVideoName(video.getName()),
+                newName -> runStorageOperation(
+                        () -> MediaStoreRepository.renameVideo(this, video, newName),
+                        R.string.video_renamed
+                )
+        );
+    }
+
+    private void showRenameDialog(
+            int titleResource,
+            String initialName,
+            Consumer<String> onConfirmed
+    ) {
+        EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setHint(R.string.new_name_hint);
+        input.setText(initialName);
+        input.setTextColor(getColor(R.color.white));
+        input.setHintTextColor(getColor(R.color.text_secondary));
+        input.setSelectAllOnFocus(true);
+
+        int horizontalPadding = Math.round(24 * getResources().getDisplayMetrics().density);
+        FrameLayout container = new FrameLayout(this);
+        container.setPadding(horizontalPadding, 0, horizontalPadding, 0);
+        container.addView(input, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(titleResource)
+                .setView(container)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.rename, null)
+                .create();
+        dialog.setOnShowListener(ignored -> {
+            input.requestFocus();
+            input.selectAll();
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+                String normalizedName = VideoFolderUtils.normalizeUserName(
+                        input.getText().toString()
+                );
+                if (normalizedName.isEmpty()) {
+                    input.setError(getString(R.string.invalid_new_name));
+                    return;
+                }
+                dialog.dismiss();
+                onConfirmed.accept(normalizedName);
+            });
+        });
+        dialog.show();
+    }
+
+    private void runStorageOperation(StorageOperation operation, int successMessage) {
+        if (storageOperationRunning) {
+            return;
+        }
+        storageOperationRunning = true;
+        int generation = loadGeneration.incrementAndGet();
+        binding.progressBar.setVisibility(View.VISIBLE);
+        binding.videosList.setAlpha(0.55f);
+        binding.actionButton.setEnabled(false);
+
+        loader.execute(() -> {
+            boolean success = operation.run();
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed() || generation != loadGeneration.get()) {
+                    return;
+                }
+                storageOperationRunning = false;
+                binding.videosList.setAlpha(1f);
+                binding.actionButton.setEnabled(true);
+                if (success) {
+                    Toast.makeText(this, successMessage, Toast.LENGTH_SHORT).show();
+                    loadFolders();
+                } else {
+                    binding.progressBar.setVisibility(View.GONE);
+                    Toast.makeText(this, R.string.rename_failed, Toast.LENGTH_LONG).show();
+                }
+            });
+        });
+    }
+
     private void shareVideos(List<SavedVideo> videos) {
         if (videos.isEmpty()) {
             return;
@@ -264,7 +399,9 @@ public final class SavedVideosActivity extends AppCompatActivity {
     }
 
     private void handleBack() {
-        if (selectionMode) {
+        if (storageOperationRunning) {
+            Toast.makeText(this, R.string.rename_in_progress, Toast.LENGTH_SHORT).show();
+        } else if (selectionMode) {
             setSelectionMode(false);
         } else if (currentFolderKey != null) {
             showFolderList();
@@ -281,5 +418,9 @@ public final class SavedVideosActivity extends AppCompatActivity {
             videoAdapter.close();
         }
         super.onDestroy();
+    }
+
+    private interface StorageOperation {
+        boolean run();
     }
 }

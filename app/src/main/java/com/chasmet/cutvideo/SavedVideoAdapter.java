@@ -36,6 +36,8 @@ public final class SavedVideoAdapter
     public interface Actions {
         void open(SavedVideo video);
 
+        void rename(SavedVideo video);
+
         void share(SavedVideo video);
 
         void onSelectionChanged(int selectedCount, int totalCount);
@@ -135,12 +137,14 @@ public final class SavedVideoAdapter
 
         int normalActionVisibility = selectionMode ? View.GONE : View.VISIBLE;
         holder.binding.openButton.setVisibility(normalActionVisibility);
+        holder.binding.renameButton.setVisibility(normalActionVisibility);
         holder.binding.shareButton.setVisibility(normalActionVisibility);
         holder.binding.trackingDivider.setVisibility(normalActionVisibility);
         holder.binding.shareTrackingTitle.setVisibility(normalActionVisibility);
         holder.binding.shareTrackingRow.setVisibility(normalActionVisibility);
 
         holder.binding.openButton.setOnClickListener(view -> actions.open(video));
+        holder.binding.renameButton.setOnClickListener(view -> actions.rename(video));
         holder.binding.shareButton.setOnClickListener(view -> actions.share(video));
         holder.binding.videoInfoRow.setOnClickListener(view -> {
             if (selectionMode) {
