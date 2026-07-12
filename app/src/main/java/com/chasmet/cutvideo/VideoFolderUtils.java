@@ -87,6 +87,52 @@ public final class VideoFolderUtils {
         return value.length() > 80 ? value.substring(0, 80) : value;
     }
 
+    public static String normalizeUserName(String candidate) {
+        String value = candidate == null ? "" : candidate;
+        value = value
+                .replaceAll("[\\p{Cntrl}]+", "")
+                .replaceAll("\\s+", " ")
+                .trim();
+        return value.length() > 60 ? value.substring(0, 60).trim() : value;
+    }
+
+    public static String renamedFolderKey(String currentFolderKey, String requestedName) {
+        String normalizedName = normalizeUserName(requestedName);
+        String encodedName = safeFolderName(normalizedName);
+        if (encodedName.length() > 48) {
+            encodedName = encodedName.substring(0, 48).replaceAll("_+$", "");
+        }
+
+        Matcher matcher = GENERATED_FOLDER.matcher(
+                currentFolderKey == null ? "" : currentFolderKey
+        );
+        String timestamp = matcher.matches()
+                ? matcher.group(2) + "_" + matcher.group(3)
+                : STORED_DATE.format(LocalDateTime.now());
+        return safeFolderName("CutVideo_" + encodedName + "_" + timestamp);
+    }
+
+    public static String editableVideoName(String currentName) {
+        if (currentName == null) {
+            return "";
+        }
+        return currentName.replaceFirst("(?i)\\.mp4$", "");
+    }
+
+    public static String safeMp4DisplayName(String requestedName) {
+        String value = editableVideoName(normalizeUserName(requestedName))
+                .replaceAll("[\\\\/:*?\"<>|]+", "_")
+                .replaceAll("\\s*_\\s*", "_")
+                .replaceAll("^[ ._]+|[ ._]+$", "");
+        if (value.isEmpty()) {
+            value = "video";
+        }
+        if (value.length() > 92) {
+            value = value.substring(0, 92).replaceAll("[ ._]+$", "");
+        }
+        return value + ".mp4";
+    }
+
     private static String ensureTrailingSlash(String value) {
         String normalized = value.replace('\\', '/');
         return normalized.endsWith("/") ? normalized : normalized + "/";
@@ -96,4 +142,3 @@ public final class VideoFolderUtils {
         return value.replaceAll("^/+|/+$", "");
     }
 }
-

@@ -54,13 +54,28 @@
             android:textSize="12sp" />
     </LinearLayout>
 
-    <ImageButton
-        android:id="@+id/shareFolderButton"
+    <LinearLayout
         android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:background="@color/transparent"
-        android:contentDescription="@string/share_folder"
-        android:padding="11dp"
-        android:src="@drawable/ic_share" />
-</LinearLayout>
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical">
 
+        <ImageButton
+            android:id="@+id/renameFolderButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@color/transparent"
+            android:contentDescription="@string/rename_folder"
+            android:padding="12dp"
+            android:src="@drawable/ic_edit" />
+
+        <ImageButton
+            android:id="@+id/shareFolderButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@color/transparent"
+            android:contentDescription="@string/share_folder"
+            android:padding="12dp"
+            android:src="@drawable/ic_share" />
+    </LinearLayout>
+</LinearLayout>

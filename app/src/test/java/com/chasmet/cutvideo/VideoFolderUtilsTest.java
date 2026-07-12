@@ -51,5 +51,31 @@ public final class VideoFolderUtilsTest {
         assertEquals("été_match_final", safeName);
         assertTrue(!safeName.contains("/"));
     }
-}
 
+    @Test
+    public void renamedFolderKeepsItsOriginalDate() {
+        assertEquals(
+                "CutVideo_Finale_équipe_de_France_20260712_191900",
+                VideoFolderUtils.renamedFolderKey(
+                        "CutVideo_1000121225_20260712_191900",
+                        "Finale équipe de France"
+                )
+        );
+    }
+
+    @Test
+    public void videoRenameIsSafeAndKeepsOneMp4Extension() {
+        assertEquals(
+                "Finale_France.mp4",
+                VideoFolderUtils.safeMp4DisplayName("  Finale / France.MP4  ")
+        );
+    }
+
+    @Test
+    public void userNameIsTrimmedAndWhitespaceIsCollapsed() {
+        assertEquals(
+                "Mon nouveau dossier",
+                VideoFolderUtils.normalizeUserName("  Mon   nouveau\n dossier  ")
+        );
+    }
+}

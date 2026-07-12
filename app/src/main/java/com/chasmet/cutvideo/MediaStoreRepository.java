@@ -146,4 +146,64 @@ public final class MediaStoreRepository {
         }
         return folders;
     }
+
+    public static boolean renameFolder(
+            Context context,
+            SavedVideoFolder folder,
+            String newFolderKey
+    ) {
+        String newRelativePath = RELATIVE_FOLDER
+                + VideoFolderUtils.safeFolderName(newFolderKey)
+                + "/";
+        ContentResolver resolver = context.getContentResolver();
+        List<SavedVideo> movedVideos = new ArrayList<>();
+
+        try {
+            for (SavedVideo video : folder.getVideos()) {
+                if (newRelativePath.equals(video.getRelativePath())) {
+                    continue;
+                }
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Video.Media.RELATIVE_PATH, newRelativePath);
+                if (resolver.update(video.getUri(), values, null, null) <= 0) {
+                    throw new IllegalStateException("Le dossier n'a pas été renommé.");
+                }
+                movedVideos.add(video);
+            }
+            return true;
+        } catch (RuntimeException error) {
+            for (SavedVideo movedVideo : movedVideos) {
+                String originalPath = movedVideo.getRelativePath();
+                if (originalPath == null || originalPath.trim().isEmpty()) {
+                    continue;
+                }
+                try {
+                    ContentValues rollback = new ContentValues();
+                    rollback.put(MediaStore.Video.Media.RELATIVE_PATH, originalPath);
+                    resolver.update(movedVideo.getUri(), rollback, null, null);
+                } catch (RuntimeException ignored) {
+                    // Le prochain chargement reflétera l'état réel si Android refuse le retour.
+                }
+            }
+            return false;
+        }
+    }
+
+    public static boolean renameVideo(Context context, SavedVideo video, String requestedName) {
+        ContentValues values = new ContentValues();
+        values.put(
+                MediaStore.Video.Media.DISPLAY_NAME,
+                VideoFolderUtils.safeMp4DisplayName(requestedName)
+        );
+        try {
+            return context.getContentResolver().update(
+                    video.getUri(),
+                    values,
+                    null,
+                    null
+            ) > 0;
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
 }

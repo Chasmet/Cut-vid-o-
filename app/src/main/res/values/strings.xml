@@ -57,6 +57,15 @@
 
     <string name="video_folder">Dossier de vidéos découpées</string>
     <string name="share_folder">Partager tout le dossier</string>
+    <string name="rename_folder">Renommer le dossier</string>
+    <string name="rename_video">Renommer cette vidéo</string>
+    <string name="rename">RENOMMER</string>
+    <string name="new_name_hint">Nouveau nom</string>
+    <string name="invalid_new_name">Entre un nom valide.</string>
+    <string name="folder_renamed">Dossier renommé.</string>
+    <string name="video_renamed">Vidéo renommée.</string>
+    <string name="rename_failed">Android n’a pas pu renommer cet élément.</string>
+    <string name="rename_in_progress">Renommage en cours…</string>
     <string name="folder_details">%1$d fichier(s) • %2$s</string>
     <string name="folder_summary">%1$d fichier(s) dans ce dossier • %2$s</string>
     <string name="legacy_folder">Anciennes vidéos</string>
