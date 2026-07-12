@@ -2,7 +2,7 @@
 
 Application Android française pour découper une vidéo directement sur le téléphone, sans compte, sans publicité et sans serveur.
 
-## Fonctions de la version 1.1
+## Fonctions de la version 1.2
 
 - sélection sécurisée depuis Google Photos ou la galerie Android ;
 - aperçu vidéo avec lecture, pause et déplacement dans la vidéo ;
@@ -10,8 +10,12 @@ Application Android française pour découper une vidéo directement sur le tél
 - durée personnalisée de 1 à 600 secondes selon la longueur de la vidéo ;
 - rognage manuel avec choix du début et de la fin ;
 - export MP4 morceau par morceau pour limiter la mémoire utilisée ;
-- sauvegarde dans `Films/CutVideo` ;
-- écran « Mes vidéos » avec miniature, lecture et partage ;
+- création d'un sous-dossier unique pour chaque vidéo traitée dans `Films/CutVideo` ;
+- écran « Mes vidéos » organisé par dossiers, puis par morceaux ;
+- conservation des anciens exports dans le dossier virtuel « Anciennes vidéos » ;
+- sélection de plusieurs morceaux, sélection de tout un dossier et partage groupé ;
+- partage direct de tous les fichiers d'un dossier ;
+- miniature, lecture et partage individuel de chaque morceau ;
 - suivi manuel sous chaque vidéo pour YouTube, TikTok, Instagram et X ;
 - mémorisation locale des cases cochées, même après fermeture de l'application ;
 - fonctionnement entièrement hors ligne.
@@ -19,8 +23,8 @@ Application Android française pour découper une vidéo directement sur le tél
 ## Télécharger l'APK depuis un téléphone
 
 1. Ouvrir la page **Releases** du dépôt GitHub.
-2. Ouvrir la version **Cut Vidéo v1.1.0**.
-3. Appuyer sur `Cut-Video-v1.1.0.apk`.
+2. Ouvrir la version **Cut Vidéo v1.2.0**.
+3. Appuyer sur `Cut-Video-v1.2.0.apk`.
 4. Ouvrir le fichier téléchargé pour l'installer.
 
 En secours, chaque compilation verte conserve aussi une archive **Cut-Video-APK** pendant 90 jours dans l'onglet **Actions**. Android peut demander d'autoriser temporairement l'installation depuis le navigateur ou l'application GitHub.
@@ -40,6 +44,7 @@ L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vi
 
 - une très longue vidéo ou une vidéo 4K peut prendre du temps et utiliser beaucoup d'espace temporaire ;
 - la précision exacte de la première image dépend des codecs et des images-clés de la vidéo source ;
+- certaines applications sociales n'acceptent pas plusieurs vidéos en un seul partage ; dans ce cas, les morceaux restent partageables individuellement ;
 - le suivi des plateformes est manuel : l'application ne peut pas confirmer automatiquement qu'une publication a réellement été mise en ligne ;
 - le mélange d'une musique externe n'est pas encore inclus.
 
@@ -48,6 +53,7 @@ L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vi
 - Java 17 ;
 - AndroidX Media3 ExoPlayer et Transformer ;
 - MediaStore pour publier les MP4 ;
+- regroupement par sous-dossier MediaStore pour séparer chaque travail ;
 - SharedPreferences pour mémoriser le suivi local des partages ;
 - tests unitaires du calcul des intervalles ;
 - compilation automatique par GitHub Actions.
