@@ -162,7 +162,12 @@ public final class VideoExportManager {
             }
             try {
                 String outputName = outputName(exportedIndex);
-                Uri savedUri = MediaStoreRepository.publishMp4(context, completedFile, outputName);
+                Uri savedUri = MediaStoreRepository.publishMp4(
+                        context,
+                        completedFile,
+                        outputName,
+                        baseName
+                );
                 completedFile.delete();
                 mainHandler.post(() -> {
                     if (cancelled.get()) {

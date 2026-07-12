@@ -15,7 +15,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class MediaStoreRepository {
 
@@ -25,13 +27,22 @@ public final class MediaStoreRepository {
     private MediaStoreRepository() {
     }
 
-    public static Uri publishMp4(Context context, File sourceFile, String displayName)
+    public static Uri publishMp4(
+            Context context,
+            File sourceFile,
+            String displayName,
+            String workFolderName
+    )
             throws IOException {
         ContentResolver resolver = context.getContentResolver();
         ContentValues values = new ContentValues();
         values.put(MediaStore.Video.Media.DISPLAY_NAME, displayName);
         values.put(MediaStore.Video.Media.MIME_TYPE, "video/mp4");
-        values.put(MediaStore.Video.Media.RELATIVE_PATH, RELATIVE_FOLDER);
+        String safeWorkFolder = VideoFolderUtils.safeFolderName(workFolderName);
+        values.put(
+                MediaStore.Video.Media.RELATIVE_PATH,
+                RELATIVE_FOLDER + safeWorkFolder + "/"
+        );
         values.put(MediaStore.Video.Media.IS_PENDING, 1);
         values.put(MediaStore.Video.Media.DATE_ADDED, System.currentTimeMillis() / 1_000L);
 
@@ -72,11 +83,13 @@ public final class MediaStoreRepository {
                 MediaStore.Video.Media._ID,
                 MediaStore.Video.Media.DISPLAY_NAME,
                 MediaStore.Video.Media.DURATION,
-                MediaStore.Video.Media.SIZE
+                MediaStore.Video.Media.SIZE,
+                MediaStore.Video.Media.RELATIVE_PATH,
+                MediaStore.Video.Media.DATE_ADDED
         };
-        String selection = MediaStore.Video.Media.RELATIVE_PATH + " = ? AND "
+        String selection = MediaStore.Video.Media.RELATIVE_PATH + " LIKE ? AND "
                 + MediaStore.Video.Media.IS_PENDING + " = 0";
-        String[] arguments = {RELATIVE_FOLDER};
+        String[] arguments = {RELATIVE_FOLDER + "%"};
         String order = MediaStore.Video.Media.DATE_ADDED + " DESC";
         Uri collection = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
 
@@ -94,6 +107,8 @@ public final class MediaStoreRepository {
             int nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME);
             int durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION);
             int sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE);
+            int pathColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.RELATIVE_PATH);
+            int dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED);
 
             while (cursor.moveToNext()) {
                 long id = cursor.getLong(idColumn);
@@ -102,7 +117,9 @@ public final class MediaStoreRepository {
                         uri,
                         cursor.getString(nameColumn),
                         cursor.getLong(durationColumn),
-                        cursor.getLong(sizeColumn)
+                        cursor.getLong(sizeColumn),
+                        cursor.getString(pathColumn),
+                        cursor.getLong(dateColumn)
                 ));
             }
         } catch (RuntimeException ignored) {
@@ -110,5 +127,23 @@ public final class MediaStoreRepository {
         }
         return results;
     }
-}
 
+    public static List<SavedVideoFolder> loadSavedVideoFolders(Context context) {
+        Map<String, List<SavedVideo>> groupedVideos = new LinkedHashMap<>();
+        for (SavedVideo video : loadSavedVideos(context)) {
+            String folderKey = VideoFolderUtils.folderKey(
+                    video.getRelativePath(),
+                    RELATIVE_FOLDER
+            );
+            groupedVideos
+                    .computeIfAbsent(folderKey, ignored -> new ArrayList<>())
+                    .add(video);
+        }
+
+        List<SavedVideoFolder> folders = new ArrayList<>();
+        for (Map.Entry<String, List<SavedVideo>> entry : groupedVideos.entrySet()) {
+            folders.add(new SavedVideoFolder(entry.getKey(), entry.getValue()));
+        }
+        return folders;
+    }
+}
