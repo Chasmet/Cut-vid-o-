@@ -96,6 +96,16 @@
                     android:contentDescription="@string/share_video"
                     android:padding="10dp"
                     android:src="@drawable/ic_share" />
+
+                <ImageButton
+                    android:id="@+id/deleteButton"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@color/transparent"
+                    android:contentDescription="@string/delete_video_title"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_delete" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

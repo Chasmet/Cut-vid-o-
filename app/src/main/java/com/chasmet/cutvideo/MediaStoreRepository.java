@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -204,6 +205,58 @@ public final class MediaStoreRepository {
             ) > 0;
         } catch (RuntimeException ignored) {
             return false;
+        }
+    }
+
+    public static DeleteResult deleteVideos(Context context, List<SavedVideo> videos) {
+        ContentResolver resolver = context.getContentResolver();
+        List<SavedVideo> deletedVideos = new ArrayList<>();
+        List<SavedVideo> failedVideos = new ArrayList<>();
+
+        for (SavedVideo video : videos) {
+            try {
+                if (resolver.delete(video.getUri(), null, null) > 0) {
+                    deletedVideos.add(video);
+                } else {
+                    failedVideos.add(video);
+                }
+            } catch (RuntimeException error) {
+                failedVideos.add(video);
+            }
+        }
+        return new DeleteResult(deletedVideos, failedVideos);
+    }
+
+    public static final class DeleteResult {
+        private final List<SavedVideo> deletedVideos;
+        private final List<SavedVideo> failedVideos;
+
+        private DeleteResult(
+                List<SavedVideo> deletedVideos,
+                List<SavedVideo> failedVideos
+        ) {
+            this.deletedVideos = Collections.unmodifiableList(
+                    new ArrayList<>(deletedVideos)
+            );
+            this.failedVideos = Collections.unmodifiableList(
+                    new ArrayList<>(failedVideos)
+            );
+        }
+
+        public List<SavedVideo> getDeletedVideos() {
+            return deletedVideos;
+        }
+
+        public List<SavedVideo> getFailedVideos() {
+            return failedVideos;
+        }
+
+        public int getDeletedCount() {
+            return deletedVideos.size();
+        }
+
+        public int getFailedCount() {
+            return failedVideos.size();
         }
     }
 }

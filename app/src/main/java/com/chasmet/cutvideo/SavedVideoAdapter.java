@@ -40,6 +40,10 @@ public final class SavedVideoAdapter
 
         void share(SavedVideo video);
 
+        void delete(SavedVideo video);
+
+        void startSelection(SavedVideo video);
+
         void onSelectionChanged(int selectedCount, int totalCount);
     }
 
@@ -98,6 +102,24 @@ public final class SavedVideoAdapter
         notifySelectionChanged();
     }
 
+    public void selectVideo(SavedVideo video) {
+        if (selectionMode) {
+            setVideoSelected(video, true);
+        }
+    }
+
+    public void clearShareTracking(List<SavedVideo> deletedVideos) {
+        SharedPreferences.Editor editor = sharePreferences.edit();
+        for (SavedVideo video : deletedVideos) {
+            String videoKey = video.getUri().toString();
+            editor.remove(buildPreferenceKey(videoKey, PLATFORM_YOUTUBE));
+            editor.remove(buildPreferenceKey(videoKey, PLATFORM_TIKTOK));
+            editor.remove(buildPreferenceKey(videoKey, PLATFORM_INSTAGRAM));
+            editor.remove(buildPreferenceKey(videoKey, PLATFORM_X));
+        }
+        editor.apply();
+    }
+
     @NonNull
     @Override
     public VideoViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -139,6 +161,7 @@ public final class SavedVideoAdapter
         holder.binding.openButton.setVisibility(normalActionVisibility);
         holder.binding.renameButton.setVisibility(normalActionVisibility);
         holder.binding.shareButton.setVisibility(normalActionVisibility);
+        holder.binding.deleteButton.setVisibility(normalActionVisibility);
         holder.binding.trackingDivider.setVisibility(normalActionVisibility);
         holder.binding.shareTrackingTitle.setVisibility(normalActionVisibility);
         holder.binding.shareTrackingRow.setVisibility(normalActionVisibility);
@@ -146,12 +169,19 @@ public final class SavedVideoAdapter
         holder.binding.openButton.setOnClickListener(view -> actions.open(video));
         holder.binding.renameButton.setOnClickListener(view -> actions.rename(video));
         holder.binding.shareButton.setOnClickListener(view -> actions.share(video));
+        holder.binding.deleteButton.setOnClickListener(view -> actions.delete(video));
         holder.binding.videoInfoRow.setOnClickListener(view -> {
             if (selectionMode) {
                 setVideoSelected(video, !selectedVideoKeys.contains(uriTag));
             } else {
                 actions.open(video);
             }
+        });
+        holder.binding.videoInfoRow.setOnLongClickListener(view -> {
+            if (!selectionMode) {
+                actions.startSelection(video);
+            }
+            return true;
         });
 
         bindTrackingCheckBox(holder.binding.youtubeCheck, uriTag, PLATFORM_YOUTUBE);
@@ -202,7 +232,7 @@ public final class SavedVideoAdapter
         );
     }
 
-    private String buildPreferenceKey(String videoKey, String platform) {
+    private static String buildPreferenceKey(String videoKey, String platform) {
         return platform + "|" + videoKey;
     }
 
