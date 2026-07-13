@@ -118,12 +118,13 @@
     <string name="visibility_unlisted">Non répertoriée</string>
     <string name="visibility_private">Privée</string>
     <string name="paste_chatgpt_metadata">COLLER LES MÉTADONNÉES DE CHATGPT</string>
+    <string name="chatgpt_metadata_format_hint">Import automatique : 1re ligne = titre • texte et lien = description • dernières lignes en # = hashtags.</string>
     <string name="publication_title_hint">Titre de la publication</string>
     <string name="publication_description_hint">Description ou légende</string>
     <string name="publication_hashtags_hint">#Hashtags</string>
     <string name="metadata_share_note">Les métadonnées sont copiées automatiquement lorsque tu appuies sur « Publier » afin de pouvoir les coller dans le réseau social.</string>
     <string name="clipboard_empty">Le presse-papiers ne contient aucun texte à importer.</string>
-    <string name="metadata_pasted">Métadonnées importées.</string>
+    <string name="metadata_pasted">Titre, description et hashtags importés.</string>
     <string name="schedule_must_be_future">Choisis une date et une heure dans le futur.</string>
     <string name="schedule_saved">Programmation enregistrée.</string>
     <string name="schedule_local_time">%1$s (heure locale)</string>

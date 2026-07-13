@@ -24,13 +24,63 @@ public final class PublicationMetadataParserTest {
     }
 
     @Test
-    public void plainTextBecomesDescription() {
+    public void parsesUnlabelledChatGptCard() {
         PublicationMetadataParser.ParsedMetadata parsed = PublicationMetadataParser.parse(
-                "Une légende libre sans rubriques"
+                "Toute la France chante « On a gagné » 🇫🇷 #Shorts\n"
+                        + "\n"
+                        + "Le morceau de CHKNoirshadow consacré à la victoire des Bleus.\n"
+                        + "\n"
+                        + "https://youtu.be/RrdmIujgbd0?is=gpsp25eJvOKKQDPu\n"
+                        + "\n"
+                        + "#Shorts #RapFrancais\n"
+                        + "#EquipeDeFrance"
         );
 
-        assertEquals("", parsed.getTitle());
-        assertEquals("Une légende libre sans rubriques", parsed.getDescription());
+        assertEquals(
+                "Toute la France chante « On a gagné » 🇫🇷 #Shorts",
+                parsed.getTitle()
+        );
+        assertEquals(
+                "Le morceau de CHKNoirshadow consacré à la victoire des Bleus.\n\n"
+                        + "https://youtu.be/RrdmIujgbd0?is=gpsp25eJvOKKQDPu",
+                parsed.getDescription()
+        );
+        assertEquals("#Shorts #RapFrancais #EquipeDeFrance", parsed.getHashtags());
+    }
+
+    @Test
+    public void keepsDescriptionParagraphsAndFinalHashtagBlock() {
+        PublicationMetadataParser.ParsedMetadata parsed = PublicationMetadataParser.parse(
+                "Les Bleus sont champions du monde 🔵⚪🔴 #Shorts\n"
+                        + "\n"
+                        + "Un extrait rempli de fierté, de football et de célébration.\n"
+                        + "\n"
+                        + "Clip complet :\n"
+                        + "https://youtu.be/RrdmIujgbd0\n"
+                        + "\n"
+                        + "#Shorts #LesBleus #OnAGagne"
+        );
+
+        assertEquals(
+                "Les Bleus sont champions du monde 🔵⚪🔴 #Shorts",
+                parsed.getTitle()
+        );
+        assertEquals(
+                "Un extrait rempli de fierté, de football et de célébration.\n\n"
+                        + "Clip complet :\nhttps://youtu.be/RrdmIujgbd0",
+                parsed.getDescription()
+        );
+        assertEquals("#Shorts #LesBleus #OnAGagne", parsed.getHashtags());
+    }
+
+    @Test
+    public void singleUnlabelledLineBecomesTitle() {
+        PublicationMetadataParser.ParsedMetadata parsed = PublicationMetadataParser.parse(
+                "Une publication sans rubriques"
+        );
+
+        assertEquals("Une publication sans rubriques", parsed.getTitle());
+        assertEquals("", parsed.getDescription());
         assertEquals("", parsed.getHashtags());
     }
 }
