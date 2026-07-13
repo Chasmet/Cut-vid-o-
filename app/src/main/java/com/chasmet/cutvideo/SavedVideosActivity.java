@@ -109,6 +109,14 @@ public final class SavedVideosActivity extends AppCompatActivity {
             }
 
             @Override
+            public void schedule(SavedVideo video) {
+                startActivity(VideoScheduleActivity.createIntent(
+                        SavedVideosActivity.this,
+                        video
+                ));
+            }
+
+            @Override
             public void startSelection(SavedVideo video) {
                 setSelectionMode(true);
                 videoAdapter.selectVideo(video);
@@ -129,7 +137,7 @@ public final class SavedVideosActivity extends AppCompatActivity {
                     int failedCount = confirmed ? 0 : pendingSystemDeleteVideos.size();
                     int deletedCount = pendingDirectDeleteCount;
                     if (confirmed) {
-                        videoAdapter.clearShareTracking(pendingSystemDeleteVideos);
+                        clearLocalVideoData(pendingSystemDeleteVideos);
                         deletedCount += pendingSystemDeleteVideos.size();
                     }
                     pendingSystemDeleteVideos = new ArrayList<>();
@@ -358,7 +366,17 @@ public final class SavedVideosActivity extends AppCompatActivity {
                 R.string.rename_video,
                 VideoFolderUtils.editableVideoName(video.getName()),
                 newName -> runStorageOperation(
-                        () -> MediaStoreRepository.renameVideo(this, video, newName),
+                        () -> {
+                            boolean renamed = MediaStoreRepository.renameVideo(this, video, newName);
+                            if (renamed) {
+                                PublicationScheduleRepository.updateVideoName(
+                                        this,
+                                        video.getUri().toString(),
+                                        VideoFolderUtils.safeMp4DisplayName(newName)
+                                );
+                            }
+                            return renamed;
+                        },
                         R.string.video_renamed
                 )
         );
@@ -519,7 +537,7 @@ public final class SavedVideosActivity extends AppCompatActivity {
                 if (isFinishing() || isDestroyed() || generation != loadGeneration.get()) {
                     return;
                 }
-                videoAdapter.clearShareTracking(result.getDeletedVideos());
+                clearLocalVideoData(result.getDeletedVideos());
                 if (result.getFailedCount() > 0
                         && requestSystemDelete(
                                 result.getFailedVideos(),
@@ -582,6 +600,16 @@ public final class SavedVideosActivity extends AppCompatActivity {
                     Toast.LENGTH_LONG
             ).show();
         }
+    }
+
+    private void clearLocalVideoData(List<SavedVideo> deletedVideos) {
+        if (deletedVideos.isEmpty()) {
+            return;
+        }
+        videoAdapter.clearShareTracking(deletedVideos);
+        List<PublicationSchedule> removedSchedules =
+                PublicationScheduleRepository.deleteForVideos(this, deletedVideos);
+        PublicationReminderScheduler.cancelAll(this, removedSchedules);
     }
 
     private void shareVideos(List<SavedVideo> videos) {

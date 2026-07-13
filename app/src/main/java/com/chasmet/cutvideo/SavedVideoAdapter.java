@@ -42,6 +42,8 @@ public final class SavedVideoAdapter
 
         void delete(SavedVideo video);
 
+        void schedule(SavedVideo video);
+
         void startSelection(SavedVideo video);
 
         void onSelectionChanged(int selectedCount, int totalCount);
@@ -112,12 +114,26 @@ public final class SavedVideoAdapter
         SharedPreferences.Editor editor = sharePreferences.edit();
         for (SavedVideo video : deletedVideos) {
             String videoKey = video.getUri().toString();
-            editor.remove(buildPreferenceKey(videoKey, PLATFORM_YOUTUBE));
-            editor.remove(buildPreferenceKey(videoKey, PLATFORM_TIKTOK));
-            editor.remove(buildPreferenceKey(videoKey, PLATFORM_INSTAGRAM));
-            editor.remove(buildPreferenceKey(videoKey, PLATFORM_X));
+            for (SocialPlatform platform : SocialPlatform.values()) {
+                editor.remove(buildPreferenceKey(videoKey, platform.getKey()));
+            }
         }
         editor.apply();
+    }
+
+    public static void markPlatformShared(
+            Context context,
+            String videoUri,
+            String platformKey
+    ) {
+        if (videoUri == null || platformKey == null) {
+            return;
+        }
+        context.getApplicationContext()
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(buildPreferenceKey(videoUri, platformKey), true)
+                .apply();
     }
 
     @NonNull
@@ -162,6 +178,7 @@ public final class SavedVideoAdapter
         holder.binding.renameButton.setVisibility(normalActionVisibility);
         holder.binding.shareButton.setVisibility(normalActionVisibility);
         holder.binding.deleteButton.setVisibility(normalActionVisibility);
+        holder.binding.scheduleButton.setVisibility(normalActionVisibility);
         holder.binding.trackingDivider.setVisibility(normalActionVisibility);
         holder.binding.shareTrackingTitle.setVisibility(normalActionVisibility);
         holder.binding.shareTrackingRow.setVisibility(normalActionVisibility);
@@ -170,6 +187,20 @@ public final class SavedVideoAdapter
         holder.binding.renameButton.setOnClickListener(view -> actions.rename(video));
         holder.binding.shareButton.setOnClickListener(view -> actions.share(video));
         holder.binding.deleteButton.setOnClickListener(view -> actions.delete(video));
+        int upcomingScheduleCount = PublicationScheduleRepository.countUpcomingForVideo(
+                context,
+                uriTag
+        );
+        holder.binding.scheduleButton.setText(
+                upcomingScheduleCount == 0
+                        ? context.getString(R.string.plan_publication)
+                        : context.getResources().getQuantityString(
+                                R.plurals.schedule_upcoming_count,
+                                upcomingScheduleCount,
+                                upcomingScheduleCount
+                        )
+        );
+        holder.binding.scheduleButton.setOnClickListener(view -> actions.schedule(video));
         holder.binding.videoInfoRow.setOnClickListener(view -> {
             if (selectionMode) {
                 setVideoSelected(video, !selectedVideoKeys.contains(uriTag));

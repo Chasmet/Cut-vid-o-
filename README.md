@@ -2,7 +2,7 @@
 
 Application Android française pour découper une vidéo directement sur le téléphone, sans compte, sans publicité et sans serveur.
 
-## Fonctions de la version 1.3
+## Fonctions de la version 1.4
 
 - sélection sécurisée depuis Google Photos ou la galerie Android ;
 - aperçu vidéo avec lecture, pause et déplacement dans la vidéo ;
@@ -27,20 +27,31 @@ Application Android française pour découper une vidéo directement sur le tél
 - miniature, lecture et partage individuel de chaque morceau ;
 - suivi manuel sous chaque vidéo pour YouTube, TikTok, Instagram et X ;
 - mémorisation locale des cases cochées, même après fermeture de l'application ;
+- bouton « Planifier la publication » uniquement sur chaque vidéo, jamais sur les dossiers ;
+- plusieurs programmations indépendantes pour une même vidéo ;
+- choix de YouTube, TikTok, Instagram, X, Facebook ou d’une autre application ;
+- calendrier Android, heure locale et visibilité prévue pour chaque publication ;
+- titre, description/légende et hashtags différents selon le réseau ;
+- import en un geste des rubriques préparées dans ChatGPT depuis le presse-papiers ;
+- duplication d’une programmation pour changer rapidement de réseau ou d’horaire ;
+- rappels Android restaurés après le redémarrage du téléphone ou la mise à jour de l’application ;
+- ouverture directe du réseau choisi avec la vidéo et copie automatique des métadonnées ;
+- états « Programmé », « À publier » et « Publié » avec suivi manuel fiable ;
+- modification, copie des métadonnées et suppression individuelle d’une programmation sans supprimer la vidéo ;
 - fonctionnement entièrement hors ligne.
 
 ## Télécharger l'APK depuis un téléphone
 
 1. Ouvrir la page **Releases** du dépôt GitHub.
-2. Ouvrir la version **Cut Vidéo v1.3.0**.
-3. Appuyer sur `Cut-Video-v1.3.0.apk`.
+2. Ouvrir la version **Cut Vidéo v1.4.0**.
+3. Appuyer sur `Cut-Video-v1.4.0.apk`.
 4. Ouvrir le fichier téléchargé pour l'installer.
 
 En secours, chaque compilation verte conserve aussi une archive **Cut-Video-APK** pendant 90 jours dans l'onglet **Actions**. Android peut demander d'autoriser temporairement l'installation depuis le navigateur ou l'application GitHub.
 
 ## Confidentialité
 
-L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vidéo choisie et ne demande pas l'accès complet à la galerie. Les cases de suivi sont enregistrées uniquement dans les préférences locales de l'application. Aucune donnée n'est envoyée sur Internet.
+L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vidéo choisie et ne demande pas l'accès complet à la galerie. Les cases de suivi, les calendriers et les métadonnées sont enregistrés uniquement dans les préférences locales de l'application. Aucune donnée n'est envoyée sur Internet par Cut Vidéo.
 
 ## Compatibilité
 
@@ -55,6 +66,8 @@ L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vi
 - la précision exacte de la première image dépend des codecs et des images-clés de la vidéo source ;
 - certaines applications sociales n'acceptent pas plusieurs vidéos en un seul partage ; dans ce cas, les morceaux restent partageables individuellement ;
 - le suivi des plateformes est manuel : l'application ne peut pas confirmer automatiquement qu'une publication a réellement été mise en ligne ;
+- la programmation déclenche un rappel et ouvre l’application sociale, mais la validation finale reste volontaire : une publication entièrement automatique demanderait les comptes, les API et les autorisations propres à chaque réseau ;
+- Android peut demander l’autorisation d’afficher des notifications et celle d’utiliser une heure exacte ; sans la seconde, le système peut légèrement retarder un rappel pour économiser la batterie ;
 - le mélange d'une musique externe n'est pas encore inclus.
 
 ## Base technique
@@ -64,5 +77,6 @@ L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vi
 - MediaStore pour publier les MP4 ;
 - regroupement par sous-dossier MediaStore pour séparer chaque travail ;
 - SharedPreferences pour mémoriser le suivi local des partages ;
+- alarmes Android et notifications locales pour les calendriers de publication ;
 - tests unitaires du calcul des intervalles ;
 - compilation automatique par GitHub Actions.
