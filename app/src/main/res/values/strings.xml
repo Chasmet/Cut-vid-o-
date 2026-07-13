@@ -6,7 +6,7 @@
     <string name="import_video">IMPORTER UNE VIDÉO</string>
     <string name="import_video_subtitle">Choisir une vidéo dans Google Photos</string>
     <string name="saved_videos">MES VIDÉOS</string>
-    <string name="saved_videos_subtitle">Voir et partager les vidéos terminées</string>
+    <string name="saved_videos_subtitle">Voir, organiser, partager ou supprimer les vidéos</string>
     <string name="privacy_note">100 %% hors ligne • Sans publicité • Aucun compte</string>
     <string name="editor_title">Découper la vidéo</string>
     <string name="save">SAUVEGARDER</string>
@@ -65,18 +65,32 @@
     <string name="folder_renamed">Dossier renommé.</string>
     <string name="video_renamed">Vidéo renommée.</string>
     <string name="rename_failed">Android n’a pas pu renommer cet élément.</string>
-    <string name="rename_in_progress">Renommage en cours…</string>
     <string name="folder_details">%1$d fichier(s) • %2$s</string>
     <string name="folder_summary">%1$d fichier(s) dans ce dossier • %2$s</string>
+    <string name="library_summary">%1$d dossier(s) • %2$d vidéo(s) • %3$s utilisés</string>
     <string name="legacy_folder">Anciennes vidéos</string>
     <string name="empty_folder">Ce dossier ne contient plus de vidéo.</string>
     <string name="select_video">Sélectionner cette vidéo</string>
     <string name="select_files">SÉLECTIONNER</string>
     <string name="select_all">TOUT SÉLECTIONNER</string>
     <string name="deselect_all">TOUT DÉSÉLECTIONNER</string>
-    <string name="selection_count">%1$d fichier(s) sélectionné(s) sur %2$d</string>
-    <string name="share_selection">PARTAGER LA SÉLECTION</string>
+    <string name="selection_summary">%1$d sur %2$d sélectionné(s) • %3$s</string>
+    <string name="share_selection_short">PARTAGER</string>
+    <string name="delete_selection_short">SUPPRIMER</string>
     <string name="select_at_least_one">Sélectionne au moins un fichier.</string>
     <string name="share_multiple_videos">Partager les vidéos sélectionnées</string>
     <string name="share_not_supported">Cette application ne permet pas ce partage. Essaie une autre application.</string>
+
+    <string name="delete">SUPPRIMER</string>
+    <string name="delete_video_title">Supprimer cette vidéo</string>
+    <string name="delete_video_message">Supprimer définitivement « %1$s » ? Cette action est irréversible.</string>
+    <string name="delete_folder_title">Supprimer le dossier</string>
+    <string name="delete_folder_message">Supprimer définitivement « %1$s » et ses %2$d vidéo(s) (%3$s) ? Cette action est irréversible.</string>
+    <string name="delete_selection_title">Supprimer la sélection</string>
+    <string name="delete_selection_message">Supprimer définitivement ces %1$d vidéo(s) (%2$s) ? Cette action est irréversible.</string>
+    <string name="delete_success">%1$d fichier(s) supprimé(s).</string>
+    <string name="delete_partial_result">%1$d fichier(s) supprimé(s), %2$d non supprimé(s).</string>
+    <string name="delete_failed">Android n’a pas pu supprimer ces fichiers.</string>
+    <string name="delete_cancelled">Suppression annulée.</string>
+    <string name="operation_in_progress">Opération en cours…</string>
 </resources>

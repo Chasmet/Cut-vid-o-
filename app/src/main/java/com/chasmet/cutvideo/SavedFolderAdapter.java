@@ -22,6 +22,8 @@ public final class SavedFolderAdapter
         void renameFolder(SavedVideoFolder folder);
 
         void shareFolder(SavedVideoFolder folder);
+
+        void deleteFolder(SavedVideoFolder folder);
     }
 
     private final Context context;
@@ -69,6 +71,7 @@ public final class SavedFolderAdapter
         holder.binding.getRoot().setOnClickListener(view -> actions.openFolder(folder));
         holder.binding.renameFolderButton.setOnClickListener(view -> actions.renameFolder(folder));
         holder.binding.shareFolderButton.setOnClickListener(view -> actions.shareFolder(folder));
+        holder.binding.deleteFolderButton.setOnClickListener(view -> actions.deleteFolder(folder));
     }
 
     @Override

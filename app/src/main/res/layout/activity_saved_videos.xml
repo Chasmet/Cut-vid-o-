@@ -128,26 +128,39 @@
                 android:id="@+id/selectAllButton"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_marginEnd="5dp"
+                android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_secondary_button"
                 android:fontFamily="sans-serif-black"
                 android:text="@string/select_all"
                 android:textColor="@color/white"
-                android:textSize="12sp" />
+                android:maxLines="2"
+                android:textSize="10sp" />
 
             <Button
                 android:id="@+id/shareSelectedButton"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_marginStart="5dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_primary_button"
                 android:fontFamily="sans-serif-black"
-                android:text="@string/share_selection"
+                android:text="@string/share_selection_short"
                 android:textColor="@color/white"
-                android:textSize="12sp" />
+                android:textSize="10sp" />
+
+            <Button
+                android:id="@+id/deleteSelectedButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_danger_button"
+                android:fontFamily="sans-serif-black"
+                android:text="@string/delete_selection_short"
+                android:textColor="@color/white"
+                android:textSize="10sp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
-
