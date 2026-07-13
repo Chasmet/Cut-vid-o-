@@ -474,12 +474,12 @@ public final class VideoScheduleActivity extends AppCompatActivity {
         Intent shareIntent = new Intent(Intent.ACTION_SEND)
                 .setType("video/mp4")
                 .putExtra(Intent.EXTRA_STREAM, uri)
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                .setClipData(ClipData.newUri(
-                        getContentResolver(),
-                        getString(R.string.share_video),
-                        uri
-                ));
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        shareIntent.setClipData(ClipData.newUri(
+                getContentResolver(),
+                getString(R.string.share_video),
+                uri
+        ));
         if (!schedule.getTitle().isEmpty()) {
             shareIntent.putExtra(Intent.EXTRA_SUBJECT, schedule.getTitle());
         }
