@@ -110,6 +110,24 @@
         </LinearLayout>
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/scheduleButton"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/bg_schedule_button"
+        android:clickable="true"
+        android:drawableStart="@drawable/ic_calendar"
+        android:drawablePadding="9dp"
+        android:focusable="true"
+        android:fontFamily="sans-serif-black"
+        android:gravity="center"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:text="@string/plan_publication"
+        android:textColor="@color/white"
+        android:textSize="11sp" />
+
     <View
         android:id="@+id/trackingDivider"
         android:layout_width="match_parent"

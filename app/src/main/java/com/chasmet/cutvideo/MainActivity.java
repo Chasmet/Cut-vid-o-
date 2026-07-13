@@ -23,6 +23,9 @@ public final class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        PublicationReminderReceiver.ensureNotificationChannel(this);
+        PublicationReminderScheduler.rescheduleAll(this);
+
         videoPicker = registerForActivityResult(
                 new ActivityResultContracts.PickVisualMedia(),
                 this::handleSelectedVideo
@@ -62,4 +65,3 @@ public final class MainActivity extends AppCompatActivity {
         startActivity(editor);
     }
 }
-
