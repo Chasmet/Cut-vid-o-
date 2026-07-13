@@ -2,7 +2,7 @@
 
 Application Android française pour découper une vidéo directement sur le téléphone, sans compte, sans publicité et sans serveur.
 
-## Fonctions de la version 1.4
+## Fonctions de la version 1.4.1
 
 - sélection sécurisée depuis Google Photos ou la galerie Android ;
 - aperçu vidéo avec lecture, pause et déplacement dans la vidéo ;
@@ -32,7 +32,8 @@ Application Android française pour découper une vidéo directement sur le tél
 - choix de YouTube, TikTok, Instagram, X, Facebook ou d’une autre application ;
 - calendrier Android, heure locale et visibilité prévue pour chaque publication ;
 - titre, description/légende et hashtags différents selon le réseau ;
-- import en un geste des rubriques préparées dans ChatGPT depuis le presse-papiers ;
+- import en un geste des métadonnées préparées dans ChatGPT depuis le presse-papiers ;
+- reconnaissance automatique des réponses sans libellés : première ligne en titre, texte et lien en description, dernières lignes en `#` dans les hashtags ;
 - duplication d’une programmation pour changer rapidement de réseau ou d’horaire ;
 - rappels Android restaurés après le redémarrage du téléphone ou la mise à jour de l’application ;
 - ouverture directe du réseau choisi avec la vidéo et copie automatique des métadonnées ;
@@ -43,8 +44,8 @@ Application Android française pour découper une vidéo directement sur le tél
 ## Télécharger l'APK depuis un téléphone
 
 1. Ouvrir la page **Releases** du dépôt GitHub.
-2. Ouvrir la version **Cut Vidéo v1.4.0**.
-3. Appuyer sur `Cut-Video-v1.4.0.apk`.
+2. Ouvrir la version **Cut Vidéo v1.4.1**.
+3. Appuyer sur `Cut-Video-v1.4.1.apk`.
 4. Ouvrir le fichier téléchargé pour l'installer.
 
 En secours, chaque compilation verte conserve aussi une archive **Cut-Video-APK** pendant 90 jours dans l'onglet **Actions**. Android peut demander d'autoriser temporairement l'installation depuis le navigateur ou l'application GitHub.

@@ -94,6 +94,14 @@
             android:textColor="@color/white"
             android:textSize="11sp" />
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:text="@string/chatgpt_metadata_format_hint"
+            android:textColor="@color/text_secondary"
+            android:textSize="10sp" />
+
         <EditText
             android:id="@+id/titleInput"
             android:layout_width="match_parent"

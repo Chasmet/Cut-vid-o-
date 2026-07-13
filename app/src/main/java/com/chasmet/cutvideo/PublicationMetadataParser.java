@@ -1,8 +1,16 @@
 package com.chasmet.cutvideo;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 public final class PublicationMetadataParser {
+
+    private static final Pattern HASHTAG_ONLY_LINE = Pattern.compile(
+            "^(?:#[\\p{L}\\p{M}\\p{N}_]+(?:\\s+|$))+$"
+    );
 
     private PublicationMetadataParser() {
     }
@@ -31,13 +39,67 @@ public final class PublicationMetadataParser {
         }
 
         if (!foundLabel) {
-            return new ParsedMetadata("", normalized, "");
+            return parseUnlabelled(normalized);
         }
         return new ParsedMetadata(
                 title.toString().trim(),
                 description.toString().trim(),
                 hashtags.toString().trim()
         );
+    }
+
+    private static ParsedMetadata parseUnlabelled(String normalized) {
+        String[] lines = normalized.split("\\n", -1);
+        int contentStart = 0;
+        int contentEnd = lines.length;
+
+        while (contentStart < contentEnd && lines[contentStart].trim().isEmpty()) {
+            contentStart++;
+        }
+        while (contentEnd > contentStart && lines[contentEnd - 1].trim().isEmpty()) {
+            contentEnd--;
+        }
+
+        List<String> hashtagLines = new ArrayList<>();
+        int bodyEnd = contentEnd;
+        boolean foundHashtags = false;
+        while (bodyEnd > contentStart) {
+            String line = lines[bodyEnd - 1].trim();
+            if (HASHTAG_ONLY_LINE.matcher(line).matches()) {
+                hashtagLines.add(line);
+                foundHashtags = true;
+                bodyEnd--;
+            } else if (foundHashtags && line.isEmpty()) {
+                bodyEnd--;
+            } else {
+                break;
+            }
+        }
+        Collections.reverse(hashtagLines);
+
+        while (bodyEnd > contentStart && lines[bodyEnd - 1].trim().isEmpty()) {
+            bodyEnd--;
+        }
+
+        String hashtags = String.join(" ", hashtagLines);
+        if (bodyEnd <= contentStart) {
+            return new ParsedMetadata("", "", hashtags);
+        }
+
+        String title = lines[contentStart].trim();
+        String description = joinLines(lines, contentStart + 1, bodyEnd).trim();
+        return new ParsedMetadata(title, description, hashtags);
+    }
+
+    private static String joinLines(String[] lines, int start, int end) {
+        StringBuilder joined = new StringBuilder();
+        for (int index = start; index < end; index++) {
+            if (joined.length() > 0) {
+                joined.append('\n');
+            }
+            joined.append(lines[index]);
+        }
+        return joined.toString();
     }
 
     private static LabelledLine labelledLine(String rawLine) {
