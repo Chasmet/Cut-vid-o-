@@ -32,6 +32,9 @@ public final class PublicationScheduleTest {
         assertEquals(original.getId(), published.getId());
         assertEquals(original.getScheduledAtMillis(), published.getScheduledAtMillis());
         assertEquals(original.getPlatformKey(), published.getPlatformKey());
+        assertEquals(original.getTitle(), published.getTitle());
+        assertEquals(original.getDescription(), published.getDescription());
+        assertEquals(original.getHashtags(), published.getHashtags());
     }
 
     @Test

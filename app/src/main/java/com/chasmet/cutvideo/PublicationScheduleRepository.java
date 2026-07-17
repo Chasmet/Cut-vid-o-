@@ -131,6 +131,7 @@ public final class PublicationScheduleRepository {
         if (!removed.isEmpty()) {
             write(context, schedules);
         }
+        VideoMetadataRepository.deleteForVideos(context, videos);
         return removed;
     }
 
