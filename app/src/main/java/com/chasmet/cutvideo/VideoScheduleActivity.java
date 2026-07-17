@@ -221,6 +221,7 @@ public final class VideoScheduleActivity extends AppCompatActivity {
         );
         configurePlatformSpinner(editor);
         configureVisibilitySpinner(editor);
+        VideoMetadata permanentMetadata = findOrRecoverPermanentMetadata();
 
         Calendar selectedTime = Calendar.getInstance();
         selectedTime.add(Calendar.HOUR_OF_DAY, 1);
@@ -239,7 +240,23 @@ public final class VideoScheduleActivity extends AppCompatActivity {
             editor.titleInput.setText(source.getTitle());
             editor.descriptionInput.setText(source.getDescription());
             editor.hashtagsInput.setText(source.getHashtags());
+        } else if (permanentMetadata != null) {
+            fillMetadataFields(editor, permanentMetadata);
         }
+
+        boolean hasPermanentMetadata = permanentMetadata != null;
+        editor.restoreMetadataButton.setEnabled(hasPermanentMetadata);
+        editor.restoreMetadataButton.setAlpha(hasPermanentMetadata ? 1f : 0.5f);
+        editor.restoreMetadataButton.setText(hasPermanentMetadata
+                ? R.string.reuse_saved_metadata
+                : R.string.no_saved_metadata);
+        editor.restoreMetadataButton.setOnClickListener(view -> {
+            if (permanentMetadata == null) {
+                return;
+            }
+            fillMetadataFields(editor, permanentMetadata);
+            Toast.makeText(this, R.string.saved_metadata_reused, Toast.LENGTH_SHORT).show();
+        });
 
         updateDateAndTimeButtons(editor, selectedTime);
         editor.dateButton.setOnClickListener(view -> showDatePicker(editor, selectedTime));
@@ -264,6 +281,42 @@ public final class VideoScheduleActivity extends AppCompatActivity {
                 ))
         );
         dialog.show();
+    }
+
+    private VideoMetadata findOrRecoverPermanentMetadata() {
+        VideoMetadata saved = VideoMetadataRepository.get(this, videoUri);
+        if (saved != null) {
+            return saved;
+        }
+
+        PublicationSchedule mostRecent = null;
+        for (PublicationSchedule schedule : PublicationScheduleRepository.listForVideo(
+                this,
+                videoUri
+        )) {
+            VideoMetadata candidate = VideoMetadata.fromSchedule(schedule);
+            if (!candidate.isEmpty()
+                    && (mostRecent == null
+                    || schedule.getCreatedAtMillis() > mostRecent.getCreatedAtMillis())) {
+                mostRecent = schedule;
+            }
+        }
+        if (mostRecent == null) {
+            return null;
+        }
+
+        VideoMetadata recovered = VideoMetadata.fromSchedule(mostRecent);
+        VideoMetadataRepository.save(this, videoUri, recovered);
+        return recovered;
+    }
+
+    private void fillMetadataFields(
+            DialogScheduleEditorBinding editor,
+            VideoMetadata metadata
+    ) {
+        editor.titleInput.setText(metadata.getTitle());
+        editor.descriptionInput.setText(metadata.getDescription());
+        editor.hashtagsInput.setText(metadata.getHashtags());
     }
 
     private void configurePlatformSpinner(DialogScheduleEditorBinding editor) {
@@ -393,6 +446,7 @@ public final class VideoScheduleActivity extends AppCompatActivity {
                 alreadyPublished
         );
         PublicationScheduleRepository.save(this, schedule);
+        VideoMetadataRepository.save(this, videoUri, VideoMetadata.fromSchedule(schedule));
         PublicationReminderScheduler.schedule(this, schedule);
         dialog.dismiss();
         refreshSchedules();
@@ -412,6 +466,11 @@ public final class VideoScheduleActivity extends AppCompatActivity {
             return;
         }
         if (published) {
+            VideoMetadataRepository.save(
+                    this,
+                    updated.getVideoUri(),
+                    VideoMetadata.fromSchedule(updated)
+            );
             PublicationReminderScheduler.cancel(this, updated);
             SavedVideoAdapter.markPlatformShared(
                     this,

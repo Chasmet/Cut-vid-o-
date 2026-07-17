@@ -47,9 +47,9 @@ jobs:
       - name: Préparer le fichier à télécharger
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.4.1.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.4.2.apk
           cd dist
-          sha256sum Cut-Video-v1.4.1.apk > Cut-Video-v1.4.1.apk.sha256
+          sha256sum Cut-Video-v1.4.2.apk > Cut-Video-v1.4.2.apk.sha256
 
       - name: Publier l'APK
         uses: actions/upload-artifact@v4
@@ -64,16 +64,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view v1.4.1 > /dev/null 2>&1; then
-            gh release upload v1.4.1 \
-              dist/Cut-Video-v1.4.1.apk \
-              dist/Cut-Video-v1.4.1.apk.sha256 \
+          if gh release view v1.4.2 > /dev/null 2>&1; then
+            gh release upload v1.4.2 \
+              dist/Cut-Video-v1.4.2.apk \
+              dist/Cut-Video-v1.4.2.apk.sha256 \
               --clobber
           else
-            gh release create v1.4.1 \
-              dist/Cut-Video-v1.4.1.apk \
-              dist/Cut-Video-v1.4.1.apk.sha256 \
-              --title "Cut Vidéo v1.4.1" \
-              --notes "Correction de l’import ChatGPT sans libellés : la première ligne remplit maintenant le titre, les paragraphes et liens remplissent la description, et les dernières lignes composées de hashtags remplissent le champ Hashtags. Le format explicite Titre/Description/Hashtags reste compatible. Toutes les fonctions de planification, renommage, partage et suppression de la version 1.4 sont conservées." \
+            gh release create v1.4.2 \
+              dist/Cut-Video-v1.4.2.apk \
+              dist/Cut-Video-v1.4.2.apk.sha256 \
+              --title "Cut Vidéo v1.4.2" \
+              --notes "Métadonnées permanentes par vidéo : le titre, la description et les hashtags restent enregistrés après publication ou suppression d’une programmation. Une nouvelle programmation recharge automatiquement la dernière copie conservée et un bouton permet de la restaurer à tout moment. L’import ChatGPT corrigé et toutes les fonctions de la version 1.4 restent disponibles." \
               --latest
           fi
