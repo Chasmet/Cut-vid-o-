@@ -23,13 +23,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.chasmet.cutvideo.databinding.ActivitySavedVideosBinding;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,10 +42,15 @@ public final class SavedVideosActivity extends AppCompatActivity {
 
     private ActivitySavedVideosBinding binding;
     private SavedFolderAdapter folderAdapter;
+    private SavedFolderAdapter unassignedFolderAdapter;
+    private VideoCollectionAdapter collectionAdapter;
+    private ConcatAdapter rootAdapter;
     private SavedVideoAdapter videoAdapter;
     private final ExecutorService loader = Executors.newSingleThreadExecutor();
     private final AtomicInteger loadGeneration = new AtomicInteger();
     private List<SavedVideoFolder> folders = new ArrayList<>();
+    private List<VideoCollection> collections = new ArrayList<>();
+    private String currentCollectionId;
     private String currentFolderKey;
     private boolean selectionMode;
     private boolean storageOperationRunning;
@@ -65,27 +73,33 @@ public final class SavedVideosActivity extends AppCompatActivity {
     }
 
     private void configureAdapters() {
-        folderAdapter = new SavedFolderAdapter(this, new SavedFolderAdapter.Actions() {
-            @Override
-            public void openFolder(SavedVideoFolder folder) {
-                showFolder(folder);
-            }
+        folderAdapter = createFolderAdapter();
+        unassignedFolderAdapter = createFolderAdapter();
+        collectionAdapter = new VideoCollectionAdapter(
+                this,
+                new VideoCollectionAdapter.Actions() {
+                    @Override
+                    public void openCollection(VideoCollection collection) {
+                        showCollection(collection);
+                    }
 
-            @Override
-            public void renameFolder(SavedVideoFolder folder) {
-                promptRenameFolder(folder);
-            }
+                    @Override
+                    public void renameCollection(VideoCollection collection) {
+                        showCollectionNameDialog(collection, null);
+                    }
 
-            @Override
-            public void shareFolder(SavedVideoFolder folder) {
-                shareVideos(folder.getVideos());
-            }
+                    @Override
+                    public void shareCollection(VideoCollection collection) {
+                        shareVideos(collection.getAllVideos());
+                    }
 
-            @Override
-            public void deleteFolder(SavedVideoFolder folder) {
-                promptDeleteFolder(folder);
-            }
-        });
+                    @Override
+                    public void deleteCollection(VideoCollection collection) {
+                        promptDeleteCollection(collection);
+                    }
+                }
+        );
+        rootAdapter = new ConcatAdapter(collectionAdapter, unassignedFolderAdapter);
 
         videoAdapter = new SavedVideoAdapter(this, new SavedVideoAdapter.Actions() {
             @Override
@@ -129,6 +143,35 @@ public final class SavedVideosActivity extends AppCompatActivity {
         });
     }
 
+    private SavedFolderAdapter createFolderAdapter() {
+        return new SavedFolderAdapter(this, new SavedFolderAdapter.Actions() {
+            @Override
+            public void openFolder(SavedVideoFolder folder) {
+                showFolder(folder);
+            }
+
+            @Override
+            public void renameFolder(SavedVideoFolder folder) {
+                promptRenameFolder(folder);
+            }
+
+            @Override
+            public void moveFolder(SavedVideoFolder folder) {
+                promptMoveFolder(folder);
+            }
+
+            @Override
+            public void shareFolder(SavedVideoFolder folder) {
+                shareVideos(folder.getVideos());
+            }
+
+            @Override
+            public void deleteFolder(SavedVideoFolder folder) {
+                promptDeleteFolder(folder);
+            }
+        });
+    }
+
     private void configureSystemDeleteLauncher() {
         systemDeleteLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartIntentSenderForResult(),
@@ -161,7 +204,15 @@ public final class SavedVideosActivity extends AppCompatActivity {
 
     private void configureActions() {
         binding.backButton.setOnClickListener(view -> handleBack());
-        binding.actionButton.setOnClickListener(view -> setSelectionMode(!selectionMode));
+        binding.actionButton.setOnClickListener(view -> {
+            if (currentFolderKey != null) {
+                setSelectionMode(!selectionMode);
+            } else if (currentCollectionId != null) {
+                promptAddFolderToCurrentCollection();
+            } else {
+                showCollectionNameDialog(null, null);
+            }
+        });
         binding.selectAllButton.setOnClickListener(view -> videoAdapter.toggleSelectAll());
         binding.shareSelectedButton.setOnClickListener(view -> shareSelectedVideos());
         binding.deleteSelectedButton.setOnClickListener(view -> promptDeleteSelection());
@@ -197,10 +248,15 @@ public final class SavedVideosActivity extends AppCompatActivity {
                     return;
                 }
                 folders = loadedFolders;
+                VideoCollectionRepository.reconcile(this, folders);
+                collections = VideoCollectionRepository.list(this, folders);
                 binding.progressBar.setVisibility(View.GONE);
                 SavedVideoFolder currentFolder = findFolder(currentFolderKey);
+                VideoCollection currentCollection = findCollection(currentCollectionId);
                 if (currentFolderKey != null && currentFolder != null) {
                     showFolder(currentFolder);
+                } else if (currentCollectionId != null && currentCollection != null) {
+                    showCollection(currentCollection);
                 } else {
                     showFolderList();
                 }
@@ -209,25 +265,50 @@ public final class SavedVideosActivity extends AppCompatActivity {
     }
 
     private void showFolderList() {
+        currentCollectionId = null;
         currentFolderKey = null;
         setSelectionMode(false);
         binding.titleText.setText(R.string.saved_title);
-        if (folders.isEmpty()) {
+        List<SavedVideoFolder> unassignedFolders = unassignedFolders();
+        if (folders.isEmpty() && collections.isEmpty()) {
             binding.folderSummaryText.setVisibility(View.GONE);
         } else {
             binding.folderSummaryText.setText(getString(
-                    R.string.library_summary,
+                    R.string.library_summary_with_collections,
+                    collections.size(),
                     folders.size(),
                     totalVideoCount(),
                     TimeFormatter.fileSize(totalVideoSizeBytes())
             ));
             binding.folderSummaryText.setVisibility(View.VISIBLE);
         }
-        binding.actionButton.setVisibility(View.GONE);
+        binding.actionButton.setText(R.string.create_collection_short);
+        binding.actionButton.setVisibility(View.VISIBLE);
         binding.emptyText.setText(R.string.empty_saved);
+        binding.videosList.setAdapter(rootAdapter);
+        collectionAdapter.submit(collections);
+        unassignedFolderAdapter.submit(unassignedFolders);
+        showContentState(collections.isEmpty() && unassignedFolders.isEmpty());
+    }
+
+    private void showCollection(VideoCollection collection) {
+        currentCollectionId = collection.getId();
+        currentFolderKey = null;
+        setSelectionMode(false);
+        binding.titleText.setText(collection.getName());
+        binding.folderSummaryText.setText(getString(
+                R.string.collection_summary,
+                collection.getFolderCount(),
+                collection.getVideoCount(),
+                TimeFormatter.fileSize(collection.getTotalSizeBytes())
+        ));
+        binding.folderSummaryText.setVisibility(View.VISIBLE);
+        binding.actionButton.setText(R.string.add_folder_short);
+        binding.actionButton.setVisibility(View.VISIBLE);
+        binding.emptyText.setText(R.string.empty_collection);
         binding.videosList.setAdapter(folderAdapter);
-        folderAdapter.submit(folders);
-        showContentState(folders.isEmpty());
+        folderAdapter.submit(collection.getFolders());
+        showContentState(collection.getFolders().isEmpty());
     }
 
     private void showFolder(SavedVideoFolder folder) {
@@ -269,6 +350,34 @@ public final class SavedVideosActivity extends AppCompatActivity {
             }
         }
         return null;
+    }
+
+    private VideoCollection findCollection(String id) {
+        if (id == null) {
+            return null;
+        }
+        for (VideoCollection collection : collections) {
+            if (id.equals(collection.getId())) {
+                return collection;
+            }
+        }
+        return null;
+    }
+
+    private List<SavedVideoFolder> unassignedFolders() {
+        Set<String> assignedKeys = new HashSet<>();
+        for (VideoCollection collection : collections) {
+            for (SavedVideoFolder folder : collection.getFolders()) {
+                assignedKeys.add(folder.getKey());
+            }
+        }
+        List<SavedVideoFolder> result = new ArrayList<>();
+        for (SavedVideoFolder folder : folders) {
+            if (!assignedKeys.contains(folder.getKey())) {
+                result.add(folder);
+            }
+        }
+        return result;
     }
 
     private void setSelectionMode(boolean enabled) {
@@ -347,18 +456,292 @@ public final class SavedVideosActivity extends AppCompatActivity {
     }
 
     private void promptRenameFolder(SavedVideoFolder folder) {
+        String oldFolderKey = folder.getKey();
         showRenameDialog(
                 R.string.rename_folder,
                 folderTitle(folder),
-                newName -> runStorageOperation(
-                        () -> MediaStoreRepository.renameFolder(
-                                this,
-                                folder,
-                                VideoFolderUtils.renamedFolderKey(folder.getKey(), newName)
-                        ),
-                        R.string.folder_renamed
-                )
+                newName -> {
+                    String newFolderKey = VideoFolderUtils.renamedFolderKey(
+                            oldFolderKey,
+                            newName
+                    );
+                    runStorageOperation(
+                            () -> {
+                                boolean renamed = MediaStoreRepository.renameFolder(
+                                        this,
+                                        folder,
+                                        newFolderKey
+                                );
+                                if (renamed) {
+                                    VideoCollectionRepository.updateFolderKey(
+                                            this,
+                                            oldFolderKey,
+                                            newFolderKey
+                                    );
+                                    if (oldFolderKey.equals(currentFolderKey)) {
+                                        currentFolderKey = newFolderKey;
+                                    }
+                                }
+                                return renamed;
+                            },
+                            R.string.folder_renamed
+                    );
+                }
         );
+    }
+
+    private void showCollectionNameDialog(
+            VideoCollection collection,
+            String folderKeyToAssign
+    ) {
+        boolean creating = collection == null;
+        EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setHint(R.string.collection_name_hint);
+        input.setText(creating ? "" : collection.getName());
+        input.setTextColor(getColor(R.color.white));
+        input.setHintTextColor(getColor(R.color.text_secondary));
+        input.setSelectAllOnFocus(true);
+
+        int horizontalPadding = Math.round(24 * getResources().getDisplayMetrics().density);
+        FrameLayout container = new FrameLayout(this);
+        container.setPadding(horizontalPadding, 0, horizontalPadding, 0);
+        container.addView(input, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(creating ? R.string.create_collection : R.string.rename_collection)
+                .setMessage(creating ? getString(R.string.collection_create_explanation) : null)
+                .setView(container)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(creating ? R.string.create : R.string.rename, null)
+                .create();
+        dialog.setOnShowListener(ignored -> {
+            input.requestFocus();
+            input.selectAll();
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+                String name = VideoFolderUtils.normalizeUserName(input.getText().toString());
+                if (name.isEmpty()) {
+                    input.setError(getString(R.string.invalid_new_name));
+                    return;
+                }
+
+                if (creating) {
+                    String collectionId = VideoCollectionRepository.create(this, name);
+                    if (collectionId == null) {
+                        input.setError(getString(R.string.collection_name_exists));
+                        return;
+                    }
+                    if (folderKeyToAssign != null) {
+                        VideoCollectionRepository.assignFolder(
+                                this,
+                                folderKeyToAssign,
+                                collectionId
+                        );
+                    }
+                    Toast.makeText(this, R.string.collection_created, Toast.LENGTH_SHORT).show();
+                } else if (!VideoCollectionRepository.rename(
+                        this,
+                        collection.getId(),
+                        name
+                )) {
+                    input.setError(getString(R.string.collection_name_exists));
+                    return;
+                } else {
+                    Toast.makeText(this, R.string.collection_renamed, Toast.LENGTH_SHORT).show();
+                }
+
+                dialog.dismiss();
+                refreshOrganizationView();
+            });
+        });
+        dialog.show();
+    }
+
+    private void promptMoveFolder(SavedVideoFolder folder) {
+        if (collections.isEmpty()) {
+            showCollectionNameDialog(null, folder.getKey());
+            return;
+        }
+
+        CharSequence[] destinations = new CharSequence[collections.size() + 2];
+        destinations[0] = getString(R.string.root_collection);
+        int selectedIndex = 0;
+        String assignedCollectionId = VideoCollectionRepository.collectionIdForFolder(
+                this,
+                folder.getKey()
+        );
+        for (int index = 0; index < collections.size(); index++) {
+            VideoCollection collection = collections.get(index);
+            destinations[index + 1] = collection.getName();
+            if (collection.getId().equals(assignedCollectionId)) {
+                selectedIndex = index + 1;
+            }
+        }
+        destinations[destinations.length - 1] = getString(R.string.create_new_collection);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.move_folder_title, folderTitle(folder)))
+                .setSingleChoiceItems(destinations, selectedIndex, null)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.move, null)
+                .create();
+        dialog.setOnShowListener(ignored -> dialog
+                .getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(view -> {
+                    int destinationIndex = dialog.getListView().getCheckedItemPosition();
+                    if (destinationIndex == destinations.length - 1) {
+                        dialog.dismiss();
+                        showCollectionNameDialog(null, folder.getKey());
+                        return;
+                    }
+                    String destinationId = destinationIndex <= 0
+                            ? null
+                            : collections.get(destinationIndex - 1).getId();
+                    if (!VideoCollectionRepository.assignFolder(
+                            this,
+                            folder.getKey(),
+                            destinationId
+                    )) {
+                        Toast.makeText(this, R.string.folder_move_failed, Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    dialog.dismiss();
+                    Toast.makeText(this, R.string.folder_moved, Toast.LENGTH_SHORT).show();
+                    refreshOrganizationView();
+                })
+        );
+        dialog.show();
+    }
+
+    private void promptAddFolderToCurrentCollection() {
+        VideoCollection targetCollection = findCollection(currentCollectionId);
+        if (targetCollection == null) {
+            showFolderList();
+            return;
+        }
+
+        List<SavedVideoFolder> candidates = new ArrayList<>();
+        List<CharSequence> labels = new ArrayList<>();
+        for (SavedVideoFolder folder : folders) {
+            String assignedId = VideoCollectionRepository.collectionIdForFolder(
+                    this,
+                    folder.getKey()
+            );
+            if (targetCollection.getId().equals(assignedId)) {
+                continue;
+            }
+            candidates.add(folder);
+            VideoCollection assignedCollection = findCollection(assignedId);
+            labels.add(assignedCollection == null
+                    ? folderTitle(folder)
+                    : getString(
+                            R.string.folder_in_collection,
+                            folderTitle(folder),
+                            assignedCollection.getName()
+                    ));
+        }
+        if (candidates.isEmpty()) {
+            Toast.makeText(this, R.string.no_folder_to_add, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        boolean[] selected = new boolean[candidates.size()];
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.add_folders_to_collection)
+                .setMultiChoiceItems(
+                        labels.toArray(new CharSequence[0]),
+                        selected,
+                        (ignored, which, checked) -> selected[which] = checked
+                )
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.add, null)
+                .create();
+        dialog.setOnShowListener(ignored -> dialog
+                .getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(view -> {
+                    int movedCount = 0;
+                    for (int index = 0; index < candidates.size(); index++) {
+                        if (selected[index] && VideoCollectionRepository.assignFolder(
+                                this,
+                                candidates.get(index).getKey(),
+                                targetCollection.getId()
+                        )) {
+                            movedCount++;
+                        }
+                    }
+                    if (movedCount == 0) {
+                        Toast.makeText(
+                                this,
+                                R.string.select_at_least_one_folder,
+                                Toast.LENGTH_SHORT
+                        ).show();
+                        return;
+                    }
+                    dialog.dismiss();
+                    Toast.makeText(
+                            this,
+                            getResources().getQuantityString(
+                                    R.plurals.folders_added,
+                                    movedCount,
+                                    movedCount
+                            ),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                    refreshOrganizationView();
+                })
+        );
+        dialog.show();
+    }
+
+    private void promptDeleteCollection(VideoCollection collection) {
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.delete_collection)
+                .setMessage(getString(
+                        R.string.delete_collection_message,
+                        collection.getName(),
+                        collection.getFolderCount()
+                ))
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.delete, (ignored, which) -> {
+                    if (!VideoCollectionRepository.delete(this, collection.getId())) {
+                        Toast.makeText(
+                                this,
+                                R.string.collection_delete_failed,
+                                Toast.LENGTH_LONG
+                        ).show();
+                        return;
+                    }
+                    if (collection.getId().equals(currentCollectionId)) {
+                        currentCollectionId = null;
+                        currentFolderKey = null;
+                    }
+                    Toast.makeText(this, R.string.collection_deleted, Toast.LENGTH_SHORT).show();
+                    refreshOrganizationView();
+                })
+                .create();
+        dialog.setOnShowListener(ignored -> dialog
+                .getButton(AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(getColor(R.color.danger))
+        );
+        dialog.show();
+    }
+
+    private void refreshOrganizationView() {
+        VideoCollectionRepository.reconcile(this, folders);
+        collections = VideoCollectionRepository.list(this, folders);
+        SavedVideoFolder currentFolder = findFolder(currentFolderKey);
+        VideoCollection currentCollection = findCollection(currentCollectionId);
+        if (currentFolder != null) {
+            showFolder(currentFolder);
+        } else if (currentCollection != null) {
+            showCollection(currentCollection);
+        } else {
+            showFolderList();
+        }
     }
 
     private void promptRenameVideo(SavedVideo video) {
@@ -659,6 +1042,13 @@ public final class SavedVideosActivity extends AppCompatActivity {
         } else if (selectionMode) {
             setSelectionMode(false);
         } else if (currentFolderKey != null) {
+            VideoCollection parentCollection = findCollection(currentCollectionId);
+            if (parentCollection != null) {
+                showCollection(parentCollection);
+            } else {
+                showFolderList();
+            }
+        } else if (currentCollectionId != null) {
             showFolderList();
         } else {
             finish();

@@ -47,9 +47,9 @@ jobs:
       - name: Préparer le fichier à télécharger
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.4.2.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.5.0.apk
           cd dist
-          sha256sum Cut-Video-v1.4.2.apk > Cut-Video-v1.4.2.apk.sha256
+          sha256sum Cut-Video-v1.5.0.apk > Cut-Video-v1.5.0.apk.sha256
 
       - name: Publier l'APK
         uses: actions/upload-artifact@v4
@@ -64,16 +64,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view v1.4.2 > /dev/null 2>&1; then
-            gh release upload v1.4.2 \
-              dist/Cut-Video-v1.4.2.apk \
-              dist/Cut-Video-v1.4.2.apk.sha256 \
+          if gh release view v1.5.0 > /dev/null 2>&1; then
+            gh release upload v1.5.0 \
+              dist/Cut-Video-v1.5.0.apk \
+              dist/Cut-Video-v1.5.0.apk.sha256 \
               --clobber
           else
-            gh release create v1.4.2 \
-              dist/Cut-Video-v1.4.2.apk \
-              dist/Cut-Video-v1.4.2.apk.sha256 \
-              --title "Cut Vidéo v1.4.2" \
-              --notes "Métadonnées permanentes par vidéo : le titre, la description et les hashtags restent enregistrés après publication ou suppression d’une programmation. Une nouvelle programmation recharge automatiquement la dernière copie conservée et un bouton permet de la restaurer à tout moment. L’import ChatGPT corrigé et toutes les fonctions de la version 1.4 restent disponibles." \
+            gh release create v1.5.0 \
+              dist/Cut-Video-v1.5.0.apk \
+              dist/Cut-Video-v1.5.0.apk.sha256 \
+              --title "Cut Vidéo v1.5.0" \
+              --notes "Nouveaux dossiers de classement dans Mes vidéos : crée un classement comme « Jusqu’au bout », place-y un ou plusieurs dossiers de découpe, puis renomme, partage ou réorganise l’ensemble. Supprimer un classement ne supprime jamais les MP4 : ses dossiers reviennent simplement à la racine. La planification et les métadonnées permanentes restent disponibles sur chaque vidéo." \
               --latest
           fi

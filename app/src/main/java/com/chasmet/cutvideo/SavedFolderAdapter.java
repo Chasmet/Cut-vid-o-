@@ -21,6 +21,8 @@ public final class SavedFolderAdapter
 
         void renameFolder(SavedVideoFolder folder);
 
+        void moveFolder(SavedVideoFolder folder);
+
         void shareFolder(SavedVideoFolder folder);
 
         void deleteFolder(SavedVideoFolder folder);
@@ -70,6 +72,7 @@ public final class SavedFolderAdapter
         holder.binding.folderDateText.setVisibility(date.isEmpty() ? View.GONE : View.VISIBLE);
         holder.binding.getRoot().setOnClickListener(view -> actions.openFolder(folder));
         holder.binding.renameFolderButton.setOnClickListener(view -> actions.renameFolder(folder));
+        holder.binding.moveFolderButton.setOnClickListener(view -> actions.moveFolder(folder));
         holder.binding.shareFolderButton.setOnClickListener(view -> actions.shareFolder(folder));
         holder.binding.deleteFolderButton.setOnClickListener(view -> actions.deleteFolder(folder));
     }

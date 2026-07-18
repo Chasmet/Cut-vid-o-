@@ -2,7 +2,7 @@
 
 Application Android française pour découper une vidéo directement sur le téléphone, sans compte, sans publicité et sans serveur.
 
-## Fonctions de la version 1.4.2
+## Fonctions de la version 1.5.0
 
 - sélection sécurisée depuis Google Photos ou la galerie Android ;
 - aperçu vidéo avec lecture, pause et déplacement dans la vidéo ;
@@ -12,6 +12,11 @@ Application Android française pour découper une vidéo directement sur le tél
 - export MP4 morceau par morceau pour limiter la mémoire utilisée ;
 - création d'un sous-dossier unique pour chaque vidéo traitée dans `Films/CutVideo` ;
 - écran « Mes vidéos » organisé par dossiers, puis par morceaux ;
+- création de dossiers de classement personnalisés pour regrouper plusieurs séries de découpes ;
+- navigation à trois niveaux : classement, dossier de découpe, puis vidéo ;
+- déplacement d’un ou de plusieurs dossiers de découpe vers un classement, ou retour à la racine ;
+- renommage et partage global d’un classement ;
+- suppression sans risque d’un classement : ses vidéos ne sont jamais effacées et ses dossiers reviennent à la racine ;
 - renommage durable des dossiers directement depuis « Mes vidéos » ;
 - renommage des fichiers MP4 à l’intérieur de chaque dossier ;
 - suppression sécurisée d’un morceau avec confirmation ;
@@ -46,15 +51,15 @@ Application Android française pour découper une vidéo directement sur le tél
 ## Télécharger l'APK depuis un téléphone
 
 1. Ouvrir la page **Releases** du dépôt GitHub.
-2. Ouvrir la version **Cut Vidéo v1.4.2**.
-3. Appuyer sur `Cut-Video-v1.4.2.apk`.
+2. Ouvrir la version **Cut Vidéo v1.5.0**.
+3. Appuyer sur `Cut-Video-v1.5.0.apk`.
 4. Ouvrir le fichier téléchargé pour l'installer.
 
 En secours, chaque compilation verte conserve aussi une archive **Cut-Video-APK** pendant 90 jours dans l'onglet **Actions**. Android peut demander d'autoriser temporairement l'installation depuis le navigateur ou l'application GitHub.
 
 ## Confidentialité
 
-L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vidéo choisie et ne demande pas l'accès complet à la galerie. Les cases de suivi, les calendriers et les métadonnées sont enregistrés uniquement dans les préférences locales de l'application. Aucune donnée n'est envoyée sur Internet par Cut Vidéo.
+L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vidéo choisie et ne demande pas l'accès complet à la galerie. Les classements, les cases de suivi, les calendriers et les métadonnées sont enregistrés uniquement dans les préférences locales de l'application. Aucune donnée n'est envoyée sur Internet par Cut Vidéo.
 
 ## Compatibilité
 
@@ -79,7 +84,7 @@ L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vi
 - AndroidX Media3 ExoPlayer et Transformer ;
 - MediaStore pour publier les MP4 ;
 - regroupement par sous-dossier MediaStore pour séparer chaque travail ;
-- SharedPreferences pour mémoriser le suivi local des partages ;
+- SharedPreferences pour mémoriser les classements et le suivi local des partages ;
 - alarmes Android et notifications locales pour les calendriers de publication ;
 - tests unitaires du calcul des intervalles ;
 - compilation automatique par GitHub Actions.
