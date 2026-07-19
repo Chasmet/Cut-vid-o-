@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="5dp"
+    android:background="@drawable/bg_card"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    android:gravity="center_horizontal"
+    android:minHeight="168dp"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="58dp">
+
+        <ImageView
+            android:id="@+id/collectionIcon"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_primary_button"
+            android:contentDescription="@string/video_collection"
+            android:padding="11dp"
+            android:src="@drawable/ic_folder" />
+
+        <ImageButton
+            android:id="@+id/noteButton"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_gravity="start|top"
+            android:background="@color/transparent"
+            android:contentDescription="@string/edit_folder_note"
+            android:padding="9dp"
+            android:src="@drawable/ic_note" />
+
+        <ImageButton
+            android:id="@+id/moreButton"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_gravity="end|top"
+            android:background="@color/transparent"
+            android:contentDescription="@string/more_actions"
+            android:padding="9dp"
+            android:src="@drawable/ic_more" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/collectionLabelText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:fontFamily="sans-serif-black"
+        android:gravity="center"
+        android:text="@string/collection_label"
+        android:textColor="@color/teal"
+        android:textSize="9sp" />
+
+    <TextView
+        android:id="@+id/collectionNameText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:maxLines="2"
+        android:textColor="@color/white"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/collectionDetailsText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="1"
+        android:textColor="@color/text_secondary"
+        android:textSize="10sp" />
+</LinearLayout>

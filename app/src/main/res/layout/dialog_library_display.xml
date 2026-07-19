@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="22dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="22dp"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/layout_section"
+            android:textColor="@color/teal"
+            android:textSize="14sp" />
+
+        <RadioGroup
+            android:id="@+id/layoutGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/listLayoutRadio"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:text="@string/layout_list"
+                android:textColor="@color/white" />
+
+            <RadioButton
+                android:id="@+id/gridLayoutRadio"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:text="@string/layout_grid"
+                android:textColor="@color/white" />
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/item_size_section"
+            android:textColor="@color/teal"
+            android:textSize="14sp" />
+
+        <RadioGroup
+            android:id="@+id/sizeGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/smallSizeRadio"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:text="@string/item_size_small"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+
+            <RadioButton
+                android:id="@+id/normalSizeRadio"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:text="@string/item_size_normal"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+
+            <RadioButton
+                android:id="@+id/largeSizeRadio"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:text="@string/item_size_large"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/sort_section"
+            android:textColor="@color/teal"
+            android:textSize="14sp" />
+
+        <RadioGroup
+            android:id="@+id/sortGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/recentSortRadio"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:text="@string/sort_recent"
+                android:textColor="@color/white" />
+
+            <RadioButton
+                android:id="@+id/nameSortRadio"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:text="@string/sort_name"
+                android:textColor="@color/white" />
+
+            <RadioButton
+                android:id="@+id/sizeSortRadio"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:text="@string/sort_size"
+                android:textColor="@color/white" />
+
+            <RadioButton
+                android:id="@+id/countSortRadio"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:buttonTint="@color/share_checkbox_tint"
+                android:text="@string/sort_count"
+                android:textColor="@color/white" />
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/grid_scope_note"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp" />
+    </LinearLayout>
+</ScrollView>
