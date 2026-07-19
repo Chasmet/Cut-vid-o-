@@ -9,7 +9,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -24,10 +26,16 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.ConcatAdapter;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.chasmet.cutvideo.databinding.ActivitySavedVideosBinding;
+import com.chasmet.cutvideo.databinding.DialogFolderNoteBinding;
+import com.chasmet.cutvideo.databinding.DialogLibraryDisplayBinding;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -40,6 +48,10 @@ import java.util.function.Consumer;
 
 public final class SavedVideosActivity extends AppCompatActivity {
 
+    private static final DateTimeFormatter NOTE_DATE_FORMAT = DateTimeFormatter.ofPattern(
+            "dd/MM/yyyy 'à' HH:mm"
+    );
+
     private ActivitySavedVideosBinding binding;
     private SavedFolderAdapter folderAdapter;
     private SavedFolderAdapter unassignedFolderAdapter;
@@ -50,6 +62,7 @@ public final class SavedVideosActivity extends AppCompatActivity {
     private final AtomicInteger loadGeneration = new AtomicInteger();
     private List<SavedVideoFolder> folders = new ArrayList<>();
     private List<VideoCollection> collections = new ArrayList<>();
+    private LibraryDisplaySettings displaySettings;
     private String currentCollectionId;
     private String currentFolderKey;
     private boolean selectionMode;
@@ -64,9 +77,9 @@ public final class SavedVideosActivity extends AppCompatActivity {
         binding = ActivitySavedVideosBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        displaySettings = LibraryDisplayPreferences.get(this);
         configureSystemInsets();
         configureSystemDeleteLauncher();
-        binding.videosList.setLayoutManager(new LinearLayoutManager(this));
         configureAdapters();
         configureActions();
         configureBackHandling();
@@ -77,10 +90,16 @@ public final class SavedVideosActivity extends AppCompatActivity {
         unassignedFolderAdapter = createFolderAdapter();
         collectionAdapter = new VideoCollectionAdapter(
                 this,
+                displaySettings,
                 new VideoCollectionAdapter.Actions() {
                     @Override
                     public void openCollection(VideoCollection collection) {
                         showCollection(collection);
+                    }
+
+                    @Override
+                    public void editNote(VideoCollection collection) {
+                        showCollectionNoteEditor(collection);
                     }
 
                     @Override
@@ -101,7 +120,7 @@ public final class SavedVideosActivity extends AppCompatActivity {
         );
         rootAdapter = new ConcatAdapter(collectionAdapter, unassignedFolderAdapter);
 
-        videoAdapter = new SavedVideoAdapter(this, new SavedVideoAdapter.Actions() {
+        videoAdapter = new SavedVideoAdapter(this, displaySettings, new SavedVideoAdapter.Actions() {
             @Override
             public void open(SavedVideo video) {
                 openVideo(video);
@@ -144,10 +163,15 @@ public final class SavedVideosActivity extends AppCompatActivity {
     }
 
     private SavedFolderAdapter createFolderAdapter() {
-        return new SavedFolderAdapter(this, new SavedFolderAdapter.Actions() {
+        return new SavedFolderAdapter(this, displaySettings, new SavedFolderAdapter.Actions() {
             @Override
             public void openFolder(SavedVideoFolder folder) {
                 showFolder(folder);
+            }
+
+            @Override
+            public void editNote(SavedVideoFolder folder) {
+                showFolderNoteEditor(folder);
             }
 
             @Override
@@ -204,6 +228,7 @@ public final class SavedVideosActivity extends AppCompatActivity {
 
     private void configureActions() {
         binding.backButton.setOnClickListener(view -> handleBack());
+        binding.viewSettingsButton.setOnClickListener(view -> showDisplaySettingsDialog());
         binding.actionButton.setOnClickListener(view -> {
             if (currentFolderKey != null) {
                 setSelectionMode(!selectionMode);
@@ -268,8 +293,16 @@ public final class SavedVideosActivity extends AppCompatActivity {
         currentCollectionId = null;
         currentFolderKey = null;
         setSelectionMode(false);
+        binding.folderNotePanel.setVisibility(View.GONE);
         binding.titleText.setText(R.string.saved_title);
-        List<SavedVideoFolder> unassignedFolders = unassignedFolders();
+        List<VideoCollection> displayedCollections = LibrarySorter.collections(
+                collections,
+                displaySettings.getSortMode()
+        );
+        List<SavedVideoFolder> unassignedFolders = LibrarySorter.folders(
+                unassignedFolders(),
+                displaySettings.getSortMode()
+        );
         if (folders.isEmpty() && collections.isEmpty()) {
             binding.folderSummaryText.setVisibility(View.GONE);
         } else {
@@ -285,16 +318,18 @@ public final class SavedVideosActivity extends AppCompatActivity {
         binding.actionButton.setText(R.string.create_collection_short);
         binding.actionButton.setVisibility(View.VISIBLE);
         binding.emptyText.setText(R.string.empty_saved);
+        applyOrganizationLayout();
         binding.videosList.setAdapter(rootAdapter);
-        collectionAdapter.submit(collections);
+        collectionAdapter.submit(displayedCollections);
         unassignedFolderAdapter.submit(unassignedFolders);
-        showContentState(collections.isEmpty() && unassignedFolders.isEmpty());
+        showContentState(displayedCollections.isEmpty() && unassignedFolders.isEmpty());
     }
 
     private void showCollection(VideoCollection collection) {
         currentCollectionId = collection.getId();
         currentFolderKey = null;
         setSelectionMode(false);
+        showCollectionNotePanel(collection);
         binding.titleText.setText(collection.getName());
         binding.folderSummaryText.setText(getString(
                 R.string.collection_summary,
@@ -306,14 +341,20 @@ public final class SavedVideosActivity extends AppCompatActivity {
         binding.actionButton.setText(R.string.add_folder_short);
         binding.actionButton.setVisibility(View.VISIBLE);
         binding.emptyText.setText(R.string.empty_collection);
+        applyOrganizationLayout();
         binding.videosList.setAdapter(folderAdapter);
-        folderAdapter.submit(collection.getFolders());
+        List<SavedVideoFolder> displayedFolders = LibrarySorter.folders(
+                collection.getFolders(),
+                displaySettings.getSortMode()
+        );
+        folderAdapter.submit(displayedFolders);
         showContentState(collection.getFolders().isEmpty());
     }
 
     private void showFolder(SavedVideoFolder folder) {
         currentFolderKey = folder.getKey();
         setSelectionMode(false);
+        showFolderNotePanel(folder);
         binding.titleText.setText(folderTitle(folder));
         binding.folderSummaryText.setText(getString(
                 R.string.folder_summary,
@@ -324,14 +365,258 @@ public final class SavedVideosActivity extends AppCompatActivity {
         binding.actionButton.setText(R.string.select_files);
         binding.actionButton.setVisibility(View.VISIBLE);
         binding.emptyText.setText(R.string.empty_folder);
+        applyVideoLayout();
         binding.videosList.setAdapter(videoAdapter);
-        videoAdapter.submit(folder.getVideos());
+        videoAdapter.submit(LibrarySorter.videos(
+                folder.getVideos(),
+                displaySettings.getSortMode()
+        ));
         showContentState(folder.getVideos().isEmpty());
     }
 
     private void showContentState(boolean empty) {
         binding.emptyText.setVisibility(empty ? View.VISIBLE : View.GONE);
         binding.videosList.setVisibility(empty ? View.GONE : View.VISIBLE);
+    }
+
+    private void applyOrganizationLayout() {
+        if (displaySettings.usesGrid()) {
+            binding.videosList.setLayoutManager(new GridLayoutManager(
+                    this,
+                    displaySettings.gridSpanCount()
+            ));
+        } else {
+            binding.videosList.setLayoutManager(new LinearLayoutManager(this));
+        }
+        int horizontalPadding = dp(displaySettings.usesGrid() ? 9 : 14);
+        binding.videosList.setPadding(
+                horizontalPadding,
+                dp(displaySettings.usesGrid() ? 9 : 14),
+                horizontalPadding,
+                dp(24)
+        );
+    }
+
+    private void applyVideoLayout() {
+        if (displaySettings.usesGrid()) {
+            binding.videosList.setLayoutManager(new GridLayoutManager(
+                    this,
+                    displaySettings.gridSpanCount()
+            ));
+        } else {
+            binding.videosList.setLayoutManager(new LinearLayoutManager(this));
+        }
+        int horizontalPadding = dp(displaySettings.usesGrid()
+                ? 9
+                : displaySettings.getItemSize() == LibraryDisplaySettings.SIZE_SMALL ? 8 : 14);
+        binding.videosList.setPadding(
+                horizontalPadding,
+                dp(displaySettings.usesGrid() ? 9 : 12),
+                horizontalPadding,
+                dp(24)
+        );
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private void showCollectionNotePanel(VideoCollection collection) {
+        FolderNote note = FolderNoteRepository.getCollection(this, collection.getId());
+        showNotePanel(
+                note,
+                R.string.collection_notes_label,
+                () -> showCollectionNoteEditor(collection)
+        );
+    }
+
+    private void showFolderNotePanel(SavedVideoFolder folder) {
+        FolderNote note = FolderNoteRepository.getFolder(this, folder.getKey());
+        showNotePanel(note, R.string.folder_notes_label, () -> showFolderNoteEditor(folder));
+    }
+
+    private void showNotePanel(FolderNote note, int labelResource, Runnable editorAction) {
+        binding.folderNotePanel.setVisibility(View.VISIBLE);
+        binding.notePanelLabelText.setText(labelResource);
+        if (note.isEmpty()) {
+            binding.notePanelPreviewText.setText(R.string.folder_note_empty);
+            binding.notePanelUpdatedText.setText(R.string.folder_note_tap_to_write);
+        } else {
+            binding.notePanelPreviewText.setText(note.getText());
+            binding.notePanelUpdatedText.setText(getString(
+                    R.string.folder_note_updated,
+                    formatNoteDate(note.getUpdatedAtMillis())
+            ));
+        }
+        binding.folderNotePanel.setOnClickListener(view -> editorAction.run());
+        binding.editNoteButton.setOnClickListener(view -> editorAction.run());
+    }
+
+    private void showCollectionNoteEditor(VideoCollection collection) {
+        showNoteEditor(true, collection.getId(), collection.getName());
+    }
+
+    private void showFolderNoteEditor(SavedVideoFolder folder) {
+        showNoteEditor(false, folder.getKey(), folderTitle(folder));
+    }
+
+    private void showNoteEditor(boolean collection, String key, String displayName) {
+        FolderNote note = collection
+                ? FolderNoteRepository.getCollection(this, key)
+                : FolderNoteRepository.getFolder(this, key);
+        DialogFolderNoteBinding editor = DialogFolderNoteBinding.inflate(getLayoutInflater());
+        editor.noteScopeText.setText(getString(
+                collection ? R.string.note_for_collection : R.string.note_for_folder,
+                displayName
+        ));
+        editor.noteInput.setText(note.getText());
+        editor.noteInput.setSelection(editor.noteInput.length());
+        updateNoteCharacterCount(editor);
+        editor.noteInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence text, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence text, int start, int before, int count) {
+                updateNoteCharacterCount(editor);
+            }
+
+            @Override
+            public void afterTextChanged(Editable text) {
+            }
+        });
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.folder_notepad)
+                .setView(editor.getRoot())
+                .setNeutralButton(R.string.insert_date_time, null)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.save_note, null)
+                .create();
+        dialog.setOnShowListener(ignored -> {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(view -> {
+                String stamp = "[" + NOTE_DATE_FORMAT.format(
+                        Instant.now().atZone(ZoneId.systemDefault())
+                ) + "] ";
+                int cursor = Math.max(0, editor.noteInput.getSelectionStart());
+                editor.noteInput.getText().insert(cursor, stamp);
+            });
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+                String text = editor.noteInput.getText().toString();
+                if (collection) {
+                    FolderNoteRepository.saveCollection(this, key, text);
+                } else {
+                    FolderNoteRepository.saveFolder(this, key, text);
+                }
+                dialog.dismiss();
+                Toast.makeText(
+                        this,
+                        FolderNoteRepository.normalizeText(text).isEmpty()
+                                ? R.string.folder_note_cleared
+                                : R.string.folder_note_saved,
+                        Toast.LENGTH_SHORT
+                ).show();
+                refreshOrganizationView();
+            });
+        });
+        dialog.show();
+    }
+
+    private void updateNoteCharacterCount(DialogFolderNoteBinding editor) {
+        editor.noteCharacterCountText.setText(getString(
+                R.string.note_character_count,
+                editor.noteInput.length(),
+                FolderNoteRepository.MAX_NOTE_LENGTH
+        ));
+    }
+
+    private String formatNoteDate(long timestampMillis) {
+        if (timestampMillis <= 0L) {
+            return "";
+        }
+        return NOTE_DATE_FORMAT.format(
+                Instant.ofEpochMilli(timestampMillis).atZone(ZoneId.systemDefault())
+        );
+    }
+
+    private void showDisplaySettingsDialog() {
+        DialogLibraryDisplayBinding editor = DialogLibraryDisplayBinding.inflate(
+                getLayoutInflater()
+        );
+        editor.layoutGroup.check(displaySettings.usesGrid()
+                ? R.id.gridLayoutRadio
+                : R.id.listLayoutRadio);
+        if (displaySettings.getItemSize() == LibraryDisplaySettings.SIZE_SMALL) {
+            editor.sizeGroup.check(R.id.smallSizeRadio);
+        } else if (displaySettings.getItemSize() == LibraryDisplaySettings.SIZE_LARGE) {
+            editor.sizeGroup.check(R.id.largeSizeRadio);
+        } else {
+            editor.sizeGroup.check(R.id.normalSizeRadio);
+        }
+        if (displaySettings.getSortMode() == LibraryDisplaySettings.SORT_NAME) {
+            editor.sortGroup.check(R.id.nameSortRadio);
+        } else if (displaySettings.getSortMode() == LibraryDisplaySettings.SORT_SIZE) {
+            editor.sortGroup.check(R.id.sizeSortRadio);
+        } else if (displaySettings.getSortMode() == LibraryDisplaySettings.SORT_COUNT) {
+            editor.sortGroup.check(R.id.countSortRadio);
+        } else {
+            editor.sortGroup.check(R.id.recentSortRadio);
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.display_settings)
+                .setView(editor.getRoot())
+                .setNeutralButton(
+                        R.string.reset_display,
+                        (ignored, which) -> applyDisplaySettings(
+                                LibraryDisplaySettings.defaults()
+                        )
+                )
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.apply, (ignored, which) -> {
+                    int displayMode = editor.layoutGroup.getCheckedRadioButtonId()
+                            == R.id.gridLayoutRadio
+                            ? LibraryDisplaySettings.MODE_GRID
+                            : LibraryDisplaySettings.MODE_LIST;
+                    int itemSize;
+                    if (editor.sizeGroup.getCheckedRadioButtonId() == R.id.smallSizeRadio) {
+                        itemSize = LibraryDisplaySettings.SIZE_SMALL;
+                    } else if (editor.sizeGroup.getCheckedRadioButtonId()
+                            == R.id.largeSizeRadio) {
+                        itemSize = LibraryDisplaySettings.SIZE_LARGE;
+                    } else {
+                        itemSize = LibraryDisplaySettings.SIZE_NORMAL;
+                    }
+                    int sortMode;
+                    int checkedSort = editor.sortGroup.getCheckedRadioButtonId();
+                    if (checkedSort == R.id.nameSortRadio) {
+                        sortMode = LibraryDisplaySettings.SORT_NAME;
+                    } else if (checkedSort == R.id.sizeSortRadio) {
+                        sortMode = LibraryDisplaySettings.SORT_SIZE;
+                    } else if (checkedSort == R.id.countSortRadio) {
+                        sortMode = LibraryDisplaySettings.SORT_COUNT;
+                    } else {
+                        sortMode = LibraryDisplaySettings.SORT_RECENT;
+                    }
+                    applyDisplaySettings(new LibraryDisplaySettings(
+                            displayMode,
+                            itemSize,
+                            sortMode
+                    ));
+                })
+                .show();
+    }
+
+    private void applyDisplaySettings(LibraryDisplaySettings settings) {
+        displaySettings = settings;
+        LibraryDisplayPreferences.save(this, settings);
+        folderAdapter.setSettings(settings);
+        unassignedFolderAdapter.setSettings(settings);
+        collectionAdapter.setSettings(settings);
+        videoAdapter.setSettings(settings);
+        refreshOrganizationView();
+        Toast.makeText(this, R.string.display_settings_saved, Toast.LENGTH_SHORT).show();
     }
 
     private String folderTitle(SavedVideoFolder folder) {
@@ -386,6 +671,12 @@ public final class SavedVideosActivity extends AppCompatActivity {
             videoAdapter.setSelectionMode(selectionMode);
         }
         binding.selectionBar.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
+        binding.viewSettingsButton.setVisibility(selectionMode ? View.GONE : View.VISIBLE);
+        binding.folderNotePanel.setVisibility(
+                selectionMode || (currentCollectionId == null && currentFolderKey == null)
+                        ? View.GONE
+                        : View.VISIBLE
+        );
         binding.actionButton.setText(selectionMode ? R.string.cancel : R.string.select_files);
     }
 
@@ -474,6 +765,11 @@ public final class SavedVideosActivity extends AppCompatActivity {
                                 );
                                 if (renamed) {
                                     VideoCollectionRepository.updateFolderKey(
+                                            this,
+                                            oldFolderKey,
+                                            newFolderKey
+                                    );
+                                    FolderNoteRepository.updateFolderKey(
                                             this,
                                             oldFolderKey,
                                             newFolderKey
@@ -715,6 +1011,7 @@ public final class SavedVideosActivity extends AppCompatActivity {
                         ).show();
                         return;
                     }
+                    FolderNoteRepository.deleteCollection(this, collection.getId());
                     if (collection.getId().equals(currentCollectionId)) {
                         currentCollectionId = null;
                         currentFolderKey = null;

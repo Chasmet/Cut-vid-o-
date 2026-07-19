@@ -46,6 +46,10 @@
     <string name="picker_cancelled">Aucune vidéo sélectionnée.</string>
 
     <string name="share_tracking_title">Suivi des partages</string>
+    <string name="tracking_youtube">Publié sur YouTube</string>
+    <string name="tracking_tiktok">Publié sur TikTok</string>
+    <string name="tracking_instagram">Publié sur Instagram</string>
+    <string name="tracking_x">Publié sur X</string>
     <string name="youtube_icon">▶</string>
     <string name="tiktok_icon">♪</string>
     <string name="instagram_icon">◎</string>
@@ -131,7 +135,49 @@
     <string name="delete_cancelled">Suppression annulée.</string>
     <string name="operation_in_progress">Opération en cours…</string>
 
+    <string name="display_settings">Affichage et tri</string>
+    <string name="folder_notepad">Bloc-notes du dossier</string>
+    <string name="edit_folder_note">Modifier la note</string>
+    <string name="add_folder_note">Ajouter une note</string>
+    <string name="more_actions">Plus d’actions</string>
+    <string name="folder_note_hint">Écris ici les publications faites, les idées à reprendre ou les prochaines étapes…</string>
+    <string name="folder_note_privacy">Cette note reste uniquement sur ton téléphone et demeure disponible après la fermeture de l’application.</string>
+    <string name="collection_notes_label">NOTE DU CLASSEMENT</string>
+    <string name="folder_notes_label">NOTE DU DOSSIER</string>
+    <string name="folder_note_empty">Aucune note pour le moment.</string>
+    <string name="folder_note_tap_to_write">Appuie ici pour écrire.</string>
+    <string name="folder_note_updated">Modifiée le %1$s</string>
+    <string name="note_for_collection">Note indépendante du classement « %1$s »</string>
+    <string name="note_for_folder">Note indépendante du dossier « %1$s »</string>
+    <string name="insert_date_time">DATE / HEURE</string>
+    <string name="save_note">ENREGISTRER</string>
+    <string name="folder_note_cleared">Note effacée.</string>
+    <string name="folder_note_saved">Note enregistrée.</string>
+    <string name="note_character_count">%1$d / %2$d caractères</string>
+
+    <string name="layout_section">Disposition des dossiers</string>
+    <string name="layout_list">Liste détaillée</string>
+    <string name="layout_grid">Grille compacte</string>
+    <string name="item_size_section">Taille des éléments</string>
+    <string name="item_size_small">Petite</string>
+    <string name="item_size_normal">Normale</string>
+    <string name="item_size_large">Grande</string>
+    <string name="sort_section">Trier par</string>
+    <string name="sort_recent">Plus récent</string>
+    <string name="sort_name">Nom</string>
+    <string name="sort_size">Taille</string>
+    <string name="sort_count">Nombre de vidéos</string>
+    <string name="grid_scope_note">La grille compacte s’applique aussi aux vidéos. Leur menu conserve la lecture, la planification, le partage, la suppression et le suivi des réseaux.</string>
+    <string name="reset_display">RÉINITIALISER</string>
+    <string name="apply">APPLIQUER</string>
+    <string name="display_settings_saved">Affichage enregistré.</string>
+
     <string name="plan_publication">PLANIFIER LA PUBLICATION</string>
+    <string name="plan_publication_short">PLANIFIER</string>
+    <plurals name="schedule_grid_count">
+        <item quantity="one">1 PUBLICATION</item>
+        <item quantity="other">%1$d PUBLICATIONS</item>
+    </plurals>
     <plurals name="schedule_upcoming_count">
         <item quantity="one">1 PROGRAMMATION ACTIVE</item>
         <item quantity="other">%1$d PROGRAMMATIONS ACTIVES</item>

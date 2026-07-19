@@ -47,9 +47,9 @@ jobs:
       - name: Préparer le fichier à télécharger
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.5.0.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.6.0.apk
           cd dist
-          sha256sum Cut-Video-v1.5.0.apk > Cut-Video-v1.5.0.apk.sha256
+          sha256sum Cut-Video-v1.6.0.apk > Cut-Video-v1.6.0.apk.sha256
 
       - name: Publier l'APK
         uses: actions/upload-artifact@v4
@@ -64,16 +64,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view v1.5.0 > /dev/null 2>&1; then
-            gh release upload v1.5.0 \
-              dist/Cut-Video-v1.5.0.apk \
-              dist/Cut-Video-v1.5.0.apk.sha256 \
+          if gh release view v1.6.0 > /dev/null 2>&1; then
+            gh release upload v1.6.0 \
+              dist/Cut-Video-v1.6.0.apk \
+              dist/Cut-Video-v1.6.0.apk.sha256 \
               --clobber
           else
-            gh release create v1.5.0 \
-              dist/Cut-Video-v1.5.0.apk \
-              dist/Cut-Video-v1.5.0.apk.sha256 \
-              --title "Cut Vidéo v1.5.0" \
-              --notes "Nouveaux dossiers de classement dans Mes vidéos : crée un classement comme « Jusqu’au bout », place-y un ou plusieurs dossiers de découpe, puis renomme, partage ou réorganise l’ensemble. Supprimer un classement ne supprime jamais les MP4 : ses dossiers reviennent simplement à la racine. La planification et les métadonnées permanentes restent disponibles sur chaque vidéo." \
+            gh release create v1.6.0 \
+              dist/Cut-Video-v1.6.0.apk \
+              dist/Cut-Video-v1.6.0.apk.sha256 \
+              --title "Cut Vidéo v1.6.0" \
+              --notes "Chaque classement et chaque dossier de découpe possède maintenant son bloc-notes permanent et indépendant, avec insertion rapide de la date et de l’heure. Mes vidéos gagne aussi une disposition liste ou grille, trois tailles d’éléments, quatre tris et des menus d’actions plus lisibles, tout en conservant exactement les couleurs de Cut Vidéo. Les notes, les réglages d’affichage, la planification et les métadonnées restent enregistrés localement sur le téléphone." \
               --latest
           fi

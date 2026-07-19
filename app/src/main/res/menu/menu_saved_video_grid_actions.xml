@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_open_video"
+        android:title="@string/open_video" />
+    <item
+        android:id="@+id/action_schedule_video"
+        android:title="@string/plan_publication" />
+    <item
+        android:id="@+id/action_rename_video"
+        android:title="@string/rename_video" />
+    <item
+        android:id="@+id/action_share_video"
+        android:title="@string/share_video" />
+    <item
+        android:id="@+id/action_select_video"
+        android:title="@string/select_video" />
+    <group android:checkableBehavior="all">
+        <item
+            android:id="@+id/action_track_youtube"
+            android:checkable="true"
+            android:title="@string/tracking_youtube" />
+        <item
+            android:id="@+id/action_track_tiktok"
+            android:checkable="true"
+            android:title="@string/tracking_tiktok" />
+        <item
+            android:id="@+id/action_track_instagram"
+            android:checkable="true"
+            android:title="@string/tracking_instagram" />
+        <item
+            android:id="@+id/action_track_x"
+            android:checkable="true"
+            android:title="@string/tracking_x" />
+    </group>
+    <item
+        android:id="@+id/action_delete_video"
+        android:title="@string/delete_video_title" />
+</menu>

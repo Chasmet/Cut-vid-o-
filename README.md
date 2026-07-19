@@ -2,7 +2,7 @@
 
 Application Android française pour découper une vidéo directement sur le téléphone, sans compte, sans publicité et sans serveur.
 
-## Fonctions de la version 1.5.0
+## Fonctions de la version 1.6.0
 
 - sélection sécurisée depuis Google Photos ou la galerie Android ;
 - aperçu vidéo avec lecture, pause et déplacement dans la vidéo ;
@@ -14,6 +14,15 @@ Application Android française pour découper une vidéo directement sur le tél
 - écran « Mes vidéos » organisé par dossiers, puis par morceaux ;
 - création de dossiers de classement personnalisés pour regrouper plusieurs séries de découpes ;
 - navigation à trois niveaux : classement, dossier de découpe, puis vidéo ;
+- bloc-notes permanent et indépendant dans chaque classement et chaque dossier de découpe ;
+- insertion rapide de la date et de l’heure dans une note pour suivre les publications effectuées ;
+- aperçu de la note à l’ouverture du dossier et indicateur directement sur sa fiche ;
+- choix entre une liste détaillée et une grille compacte pour les classements, les dossiers et les vidéos ;
+- menu complet sur chaque vidéo en grille : lecture, planification, renommage, partage, sélection, suppression et suivi des réseaux ;
+- trois tailles d’éléments : petite, normale ou grande ;
+- tri par date récente, nom, taille ou nombre de vidéos ;
+- mémorisation automatique de la disposition, de la taille et du tri choisis ;
+- menus d’actions regroupés pour alléger les fiches, sans changer les couleurs de l’application ;
 - déplacement d’un ou de plusieurs dossiers de découpe vers un classement, ou retour à la racine ;
 - renommage et partage global d’un classement ;
 - suppression sans risque d’un classement : ses vidéos ne sont jamais effacées et ses dossiers reviennent à la racine ;
@@ -51,15 +60,15 @@ Application Android française pour découper une vidéo directement sur le tél
 ## Télécharger l'APK depuis un téléphone
 
 1. Ouvrir la page **Releases** du dépôt GitHub.
-2. Ouvrir la version **Cut Vidéo v1.5.0**.
-3. Appuyer sur `Cut-Video-v1.5.0.apk`.
+2. Ouvrir la version **Cut Vidéo v1.6.0**.
+3. Appuyer sur `Cut-Video-v1.6.0.apk`.
 4. Ouvrir le fichier téléchargé pour l'installer.
 
 En secours, chaque compilation verte conserve aussi une archive **Cut-Video-APK** pendant 90 jours dans l'onglet **Actions**. Android peut demander d'autoriser temporairement l'installation depuis le navigateur ou l'application GitHub.
 
 ## Confidentialité
 
-L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vidéo choisie et ne demande pas l'accès complet à la galerie. Les classements, les cases de suivi, les calendriers et les métadonnées sont enregistrés uniquement dans les préférences locales de l'application. Aucune donnée n'est envoyée sur Internet par Cut Vidéo.
+L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vidéo choisie et ne demande pas l'accès complet à la galerie. Les classements, les notes de dossiers, les réglages d’affichage, les cases de suivi, les calendriers et les métadonnées sont enregistrés uniquement dans les préférences locales de l'application. Aucune donnée n'est envoyée sur Internet par Cut Vidéo.
 
 ## Compatibilité
 
@@ -84,7 +93,7 @@ L'application utilise le sélecteur officiel Android. Elle n'accède qu'à la vi
 - AndroidX Media3 ExoPlayer et Transformer ;
 - MediaStore pour publier les MP4 ;
 - regroupement par sous-dossier MediaStore pour séparer chaque travail ;
-- SharedPreferences pour mémoriser les classements et le suivi local des partages ;
+- SharedPreferences pour mémoriser les classements, les blocs-notes, l’affichage et le suivi local des partages ;
 - alarmes Android et notifications locales pour les calendriers de publication ;
 - tests unitaires du calcul des intervalles ;
 - compilation automatique par GitHub Actions.
