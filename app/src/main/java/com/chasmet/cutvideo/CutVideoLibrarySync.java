@@ -12,6 +12,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -97,17 +98,39 @@ public final class CutVideoLibrarySync {
         root.put("synced_at_millis", System.currentTimeMillis());
         root.put("app_version", BuildConfig.VERSION_NAME);
 
-        JSONArray projectsJson = new JSONArray();
+        Map<String, List<SavedVideo>> videosByProject = new LinkedHashMap<>();
         Map<String, String> projectByVideoUri = new HashMap<>();
-        List<SavedVideoFolder> folders = new ArrayList<>(MediaStoreRepository.loadSavedVideoFolders(context));
-        folders.sort((left, right) -> naturalCompare(left.getKey(), right.getKey()));
 
-        for (SavedVideoFolder folder : folders) {
+        for (SavedVideoFolder folder : MediaStoreRepository.loadSavedVideoFolders(context)) {
+            if (VideoFolderUtils.isLegacy(folder.getKey())) {
+                for (SavedVideo video : folder.getVideos()) {
+                    String projectName = inferProjectName(video.getName());
+                    videosByProject.computeIfAbsent(projectName, ignored -> new ArrayList<>()).add(video);
+                    projectByVideoUri.put(video.getUri().toString(), projectName);
+                }
+                continue;
+            }
+
+            String projectName = VideoFolderUtils.displayName(folder.getKey()).trim();
+            if (projectName.isEmpty()) {
+                projectName = "Projet";
+            }
+            videosByProject.computeIfAbsent(projectName, ignored -> new ArrayList<>())
+                    .addAll(folder.getVideos());
+            for (SavedVideo video : folder.getVideos()) {
+                projectByVideoUri.put(video.getUri().toString(), projectName);
+            }
+        }
+
+        List<String> projectNames = new ArrayList<>(videosByProject.keySet());
+        projectNames.sort(CutVideoLibrarySync::naturalCompare);
+        JSONArray projectsJson = new JSONArray();
+        for (String projectName : projectNames) {
             JSONObject projectJson = new JSONObject();
-            projectJson.put("name", folder.getKey());
+            projectJson.put("name", projectName);
             JSONArray videosJson = new JSONArray();
 
-            List<SavedVideo> orderedVideos = new ArrayList<>(folder.getVideos());
+            List<SavedVideo> orderedVideos = new ArrayList<>(videosByProject.get(projectName));
             orderedVideos.sort((left, right) -> naturalCompare(left.getName(), right.getName()));
             for (SavedVideo video : orderedVideos) {
                 JSONObject videoJson = new JSONObject();
@@ -116,7 +139,6 @@ public final class CutVideoLibrarySync {
                 videoJson.put("size_bytes", Math.max(0L, video.getSizeBytes()));
                 videoJson.put("date_added_seconds", Math.max(0L, video.getDateAddedSeconds()));
                 videosJson.put(videoJson);
-                projectByVideoUri.put(video.getUri().toString(), folder.getKey());
             }
             projectJson.put("videos", videosJson);
             projectsJson.put(projectJson);
@@ -127,7 +149,10 @@ public final class CutVideoLibrarySync {
         for (PublicationSchedule schedule : PublicationScheduleRepository.listAll(context)) {
             JSONObject scheduleJson = new JSONObject();
             scheduleJson.put("id", schedule.getId());
-            scheduleJson.put("project", projectByVideoUri.getOrDefault(schedule.getVideoUri(), ""));
+            scheduleJson.put("project", projectByVideoUri.getOrDefault(
+                    schedule.getVideoUri(),
+                    inferProjectName(schedule.getVideoName())
+            ));
             scheduleJson.put("video_name", schedule.getVideoName());
             scheduleJson.put("platform", schedule.getPlatformKey());
             scheduleJson.put("scheduled_at_millis", Math.max(0L, schedule.getScheduledAtMillis()));
@@ -141,6 +166,15 @@ public final class CutVideoLibrarySync {
         }
         root.put("schedules", schedulesJson);
         return root;
+    }
+
+    private static String inferProjectName(String fileName) {
+        String name = fileName == null ? "" : fileName.trim().replaceFirst("(?i)\\.mp4$", "");
+        name = name.replaceFirst("(?i)[ _-]+(?:part(?:ie)?|clip|video)?[ _-]*\\d+$", "").trim();
+        if (name.isEmpty()) {
+            return "Autres";
+        }
+        return name.replace('_', ' ').replaceAll("\\s+", " ").trim();
     }
 
     private static int naturalCompare(String leftValue, String rightValue) {
