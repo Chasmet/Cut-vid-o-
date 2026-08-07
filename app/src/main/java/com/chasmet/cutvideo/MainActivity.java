@@ -40,6 +40,12 @@ public final class MainActivity extends AppCompatActivity {
         ));
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        CutVideoLibrarySync.syncAsync(this);
+    }
+
     private void openVideoPicker() {
         PickVisualMediaRequest request = new PickVisualMediaRequest.Builder()
                 .setMediaType(ActivityResultContracts.PickVisualMedia.VideoOnly.INSTANCE)
