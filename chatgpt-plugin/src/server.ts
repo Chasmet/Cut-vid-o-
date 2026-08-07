@@ -24,6 +24,8 @@ app.use((req, res, next) => {
 
 const PORT = Number(process.env.PORT ?? 3000);
 const MAX_METADATA_CHARS = 100;
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL
+  ?? "https://cut-video-chatgpt-mcp.onrender.com").replace(/\/+$/, "");
 
 const platformSchema = z.enum(["youtube", "tiktok", "instagram", "x"]);
 const accountSchema = z.enum(["chknoirshadow", "qg"]);
@@ -98,7 +100,23 @@ const publicationSchema = z.object({
   hashtags: z.array(z.string()).max(5).default([]),
 });
 
-function preparePublication(p: z.infer<typeof publicationSchema>) {
+type PublicationInput = z.infer<typeof publicationSchema>;
+
+function buildHandoffUrl(p: PublicationInput, hashtags: string[]): string {
+  const url = new URL("/handoff", PUBLIC_BASE_URL);
+  url.searchParams.set("video_name", p.video_name);
+  url.searchParams.set("account", p.account);
+  url.searchParams.set("platform", p.platform);
+  url.searchParams.set("date", p.date);
+  url.searchParams.set("time", p.time);
+  url.searchParams.set("title", p.title.trim());
+  if (p.description.trim()) url.searchParams.set("description", p.description.trim());
+  if (hashtags.length) url.searchParams.set("hashtags", hashtags.join(" "));
+  if (p.visibility.trim()) url.searchParams.set("visibility", p.visibility.trim());
+  return url.toString();
+}
+
+function preparePublication(p: PublicationInput) {
   assertAllowed(p.account, p.platform);
   const tags = normalizeHashtags(p.hashtags);
   const metadata = compactMetadata(p.title, p.description, tags);
@@ -110,13 +128,14 @@ function preparePublication(p: z.infer<typeof publicationSchema>) {
     metadata_characters: [...metadata].length,
     source_file: p.video_name,
     handoff: `Ouvrir ${p.platform.toUpperCase()} avec le compte ${accountLabel(p.account)} déjà connecté.`,
+    handoff_url: buildHandoffUrl(p, tags),
   };
 }
 
 function createServer(): McpServer {
   const server = new McpServer({
     name: "cut-video-publication-companion",
-    version: "1.3.1",
+    version: "1.4.0",
   });
 
   server.registerTool(
@@ -202,7 +221,7 @@ function createServer(): McpServer {
     {
       title: "Programmer les publications et créer la fiche",
       description:
-        "Use this as the main Cut Vidéo tool. For every supplied video file, create network-specific metadata that matches that file, stays within 100 characters total, then organize the requested date/time schedule and return one clean fiche for the application's dedicated block. This tool does not cut videos and does not publish by API.",
+        "Use this as the main Cut Vidéo tool. For every supplied video file, create network-specific metadata that matches that file, stays within 100 characters total, then organize the requested date/time schedule and return one clean fiche for the application's dedicated block. Always surface each returned handoff_url so the user can open the prepared publication directly in the Cut Vidéo Android app. This tool does not cut videos and does not publish by API.",
       inputSchema: {
         project: z.string().trim().min(1).max(120),
         timezone: z.string().trim().default("Europe/Paris"),
@@ -234,6 +253,7 @@ function createServer(): McpServer {
           `META (${p.metadata_characters}/${MAX_METADATA_CHARS})`,
           p.metadata_text,
           `Action: ${p.handoff}`,
+          `Ouvrir dans Cut Vidéo: ${p.handoff_url}`,
           "",
         ]),
         notes ? "NOTES" : "",
@@ -250,6 +270,12 @@ function createServer(): McpServer {
           max_metadata_characters: MAX_METADATA_CHARS,
           publications: ordered,
           fiche_bloc: fiche,
+          handoff_urls: ordered.map((p) => ({
+            video_name: p.video_name,
+            platform: p.platform,
+            account: p.account,
+            url: p.handoff_url,
+          })),
         },
         content: [{ type: "text", text: fiche }],
       };
@@ -271,12 +297,22 @@ function sendMcpError(
   });
 }
 
+function htmlEscape(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 app.get("/", (_req, res) =>
   res.json({
     name: "Cut Vidéo ChatGPT Publication Companion",
-    version: "1.3.1",
+    version: "1.4.0",
     status: "ok",
     mcp: "/mcp",
+    handoff: "/handoff",
     max_metadata_characters: MAX_METADATA_CHARS,
     accounts: { CHKNOIRSHADOW: ALLOWED.chknoirshadow, QG: ALLOWED.qg },
     purpose: "metadata, scheduling and dedicated publication fiche only",
@@ -288,6 +324,59 @@ app.get("/", (_req, res) =>
 app.get("/health", (_req, res) =>
   res.json({ status: "ok", sessions: sessions.size }),
 );
+
+app.get("/handoff", (req, res) => {
+  const appUrl = new URL("cutvideo://import");
+  const allowedKeys = [
+    "video_name",
+    "account",
+    "platform",
+    "date",
+    "time",
+    "title",
+    "description",
+    "hashtags",
+    "visibility",
+  ];
+
+  for (const key of allowedKeys) {
+    const value = req.query[key];
+    if (typeof value === "string" && value.trim()) {
+      appUrl.searchParams.set(key, value.trim());
+    }
+  }
+
+  const target = appUrl.toString();
+  const videoName = typeof req.query.video_name === "string"
+    ? req.query.video_name
+    : "publication";
+
+  res.type("html").send(`<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ouvrir dans Cut Vidéo</title>
+  <style>
+    body{font-family:system-ui,sans-serif;background:#101416;color:#fff;margin:0;display:grid;place-items:center;min-height:100vh}
+    main{max-width:520px;padding:28px;text-align:center}
+    a{display:inline-block;margin-top:18px;padding:15px 22px;border-radius:14px;background:#16b8a6;color:#fff;text-decoration:none;font-weight:700}
+    p{color:#b9c3c7;line-height:1.5}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Cut Vidéo</h1>
+    <p>La programmation « ${htmlEscape(videoName)} » est prête à être importée dans l’application.</p>
+    <a id="open" href="${htmlEscape(target)}">Ouvrir dans Cut Vidéo</a>
+  </main>
+  <script>
+    const target = ${JSON.stringify(target)};
+    setTimeout(() => { window.location.href = target; }, 250);
+  </script>
+</body>
+</html>`);
+});
 
 app.post("/mcp", async (req, res) => {
   const sessionId = req.headers["mcp-session-id"];
