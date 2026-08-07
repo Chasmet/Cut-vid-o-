@@ -33,5 +33,8 @@ jobs:
       - name: Installer les dépendances
         run: npm install
 
-      - name: Vérifier TypeScript
+      - name: Appliquer le patch de démarrage
+        run: npx tsx src/patch_server.ts
+
+      - name: Vérifier le serveur MCP généré
         run: npm run typecheck
