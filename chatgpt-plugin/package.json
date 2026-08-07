@@ -1,9 +1,9 @@
 {
   "name": "cut-video-chatgpt-plugin",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
-  "description": "Compagnon MCP pour utiliser Cut Vidéo depuis ChatGPT sans envoyer les vidéos au serveur.",
+  "description": "Compagnon MCP pour synchroniser la bibliothèque Cut Vidéo, préparer les métadonnées et les programmations sans envoyer les fichiers vidéo.",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
@@ -15,6 +15,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "latest",
     "express": "latest",
+    "redis": "latest",
     "zod": "latest"
   },
   "devDependencies": {
