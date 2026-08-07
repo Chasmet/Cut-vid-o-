@@ -6,51 +6,77 @@ Ce dossier ajoute un serveur MCP destiné à être connecté à ChatGPT.
 
 Le plugin ne découpe pas les vidéos et ne reçoit aucun fichier vidéo. Il sert uniquement à :
 
-- préparer les métadonnées de publication ;
-- produire un titre, une description et des hashtags compatibles avec l'import presse-papiers de Cut Vidéo ;
-- organiser plusieurs publications dans un ordre clair ;
-- préparer les dates, heures, réseaux, visibilité et statut de chaque publication ;
-- générer une fiche récapitulative à coller dans le bloc-notes dédié de l'application.
+- lire le nom du fichier vidéo fourni dans la demande ;
+- préparer des métadonnées cohérentes avec ce fichier ;
+- limiter le bloc complet titre + description + hashtags à **100 caractères maximum** ;
+- utiliser au maximum 5 hashtags ;
+- préparer la date et l'heure de programmation ;
+- classer les publications dans un ordre clair ;
+- générer une fiche récapitulative pour le bloc dédié de Cut Vidéo.
+
+## Comptes configurés
+
+- **CHKNOIRSHADOW** : YouTube, TikTok, Instagram, X.
+- **QG** : YouTube, TikTok.
+
+Cut Vidéo ouvre l'application sociale choisie. Le compte utilisé est celui déjà connecté et actif dans l'application sociale sur le téléphone.
+
+## Règle des métadonnées
+
+Chaque publication utilise ce format compact déjà compatible avec le parseur Android :
+
+```text
+Titre
+Description
+#Hashtag1 #Hashtag2
+```
+
+Les trois lignes réunies ne peuvent jamais dépasser **100 caractères**. Si ChatGPT prépare un texte plus long, le serveur MCP renvoie une erreur et ChatGPT doit le raccourcir avant de continuer.
+
+Le champ `video_name` est obligatoire. ChatGPT doit créer le titre, la description et les hashtags en fonction du nom du fichier et du sujet donné par l'utilisateur. Il ne doit pas inventer un sujet sans rapport.
 
 ## Outils MCP
 
+### `list_cutvideo_accounts`
+
+Retourne les deux profils et les réseaux autorisés.
+
 ### `prepare_cutvideo_metadata`
 
-Formate une publication unique en :
-
-```text
-Titre: ...
-Description: ...
-Hashtags: #... #... #...
-```
-
-Ce format est compris par `PublicationMetadataParser` dans l'application Android.
-
-### `prepare_cutvideo_publication_sheet`
-
-Crée une fiche ordonnée avec :
-
-- numéro d'ordre ;
-- nom de la vidéo ;
-- réseau ;
-- date et heure ;
-- statut ;
-- visibilité ;
-- titre ;
-- description ;
-- hashtags.
-
-La réponse contient aussi `fiche_bloc`, prévue pour être copiée dans le bloc-notes de Cut Vidéo.
+Prépare les métadonnées compactes d'un seul fichier avec contrôle strict des 100 caractères.
 
 ### `prepare_cutvideo_publication_pack`
 
-Outil principal : combine métadonnées, liste de programmation et fiche récapitulative.
+Outil principal. Pour chaque fichier vidéo, il prépare :
 
-## Exemple d'utilisation dans ChatGPT
+- compte ;
+- réseau ;
+- date ;
+- heure ;
+- statut ;
+- métadonnées ≤ 100 caractères ;
+- nombre exact de caractères ;
+- fiche finale pour le bloc dédié de Cut Vidéo.
 
-> Prépare mes métadonnées YouTube pour `Albator 01.mp4`, programme-la vendredi à 18 h, puis fais-moi la fiche Cut Vidéo.
+## Exemple
 
-ChatGPT prépare le texte et appelle le serveur MCP pour obtenir une sortie propre et structurée.
+Demande :
+
+> Programme `Albator_01.mp4` vendredi à 18 h sur TikTok CHKNOIRSHADOW et fais la fiche.
+
+Sortie de principe :
+
+```text
+FICHE PUBLICATION — Albator
+
+1. Albator_01.mp4
+CHKNOIRSHADOW • TIKTOK
+07/08/2026 à 18:00 • À PROGRAMMER
+META (68/100)
+Albator rap sombre
+Le corsaire revient dans l'espace
+#Albator #RapFR
+```
 
 ## Lancer en local
 
@@ -66,8 +92,8 @@ Le serveur écoute par défaut sur :
 http://localhost:3000/mcp
 ```
 
-Pour ChatGPT, le serveur MCP devra être déployé sur une adresse HTTPS accessible publiquement.
+Pour l'utiliser depuis ChatGPT, le serveur MCP doit être exposé sur une adresse HTTPS accessible à ChatGPT. Les Apps/Plugins ChatGPT actuels peuvent utiliser des serveurs MCP. Voir la documentation développeur OpenAI.
 
 ## Confidentialité
 
-Le serveur ne reçoit ni ne traite les vidéos. Les fichiers restent dans l'application Android Cut Vidéo sur le téléphone.
+Le serveur ne reçoit ni vidéo, ni mot de passe, ni identifiant de réseau social. Les vidéos restent dans Cut Vidéo sur le téléphone.
