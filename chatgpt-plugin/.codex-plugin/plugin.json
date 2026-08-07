@@ -1,21 +1,21 @@
 {
   "name": "cut-video-publication",
-  "version": "1.0.0",
-  "description": "Prépare les métadonnées, la programmation et la fiche de publication de Cut Vidéo.",
+  "version": "1.1.0",
+  "description": "Gère automatiquement la bibliothèque Cut Vidéo, choisit le projet actif, crée les métadonnées et programme les publications.",
   "repository": "https://github.com/Chasmet/Cut-vid-o-",
   "license": "MIT",
   "keywords": ["video", "social", "metadata", "scheduling", "youtube", "tiktok", "instagram"],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Cut Vidéo Publication",
-    "shortDescription": "Métadonnées ≤ 100 caractères, programmation et fiche Cut Vidéo",
-    "longDescription": "Prépare des métadonnées adaptées au nom du fichier vidéo, organise les publications par compte et réseau, puis génère une fiche récapitulative pour Cut Vidéo.",
+    "displayName": "Cut Vidéo",
+    "shortDescription": "Gère automatiquement vidéos, métadonnées et programmations",
+    "longDescription": "Lit toute la bibliothèque Cut Vidéo synchronisée, choisit automatiquement le projet à traiter quand il n'est pas précisé, utilise les vrais noms de fichiers, crée des métadonnées de 100 caractères maximum et prépare un lot de programmation importable dans l'application Android.",
     "developerName": "Chasmet",
     "category": "Productivity",
     "capabilities": ["Read"],
     "defaultPrompt": [
-      "Prépare les métadonnées et la programmation de cette vidéo pour Cut Vidéo.",
-      "Crée ma fiche de publication Cut Vidéo pour mes réseaux."
+      "Occupe-toi de mes vidéos : choisis automatiquement le projet à traiter, fais les métadonnées et programme-les.",
+      "Programme mes prochaines vidéos Cut Vidéo sans me demander les informations déjà disponibles dans l'application."
     ]
   }
 }
