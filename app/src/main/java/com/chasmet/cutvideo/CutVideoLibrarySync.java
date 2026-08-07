@@ -2,6 +2,9 @@ package com.chasmet.cutvideo;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -34,17 +37,21 @@ public final class CutVideoLibrarySync {
 
     public static void syncAsync(Context context) {
         Context appContext = context.getApplicationContext();
+        showStatus(appContext, "Cut Vidéo " + BuildConfig.VERSION_NAME + " — synchro ChatGPT démarrée");
         EXECUTOR.execute(() -> syncNow(appContext));
     }
 
     private static void syncNow(Context context) {
         String token = getOrCreateDeviceToken(context);
+        int lastPairCode = 0;
+        int lastSyncCode = 0;
+        String lastError = "";
 
-        // Contacte d'abord Render. Ainsi, même si la construction du catalogue échoue
-        // sur un appareil particulier, le serveur reçoit au moins la tentative de connexion.
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
-                if (!pair(token)) {
+                lastPairCode = pair(token);
+                if (lastPairCode < 200 || lastPairCode >= 300) {
+                    lastError = "PAIR HTTP " + lastPairCode;
                     if (attempt < MAX_ATTEMPTS) sleepBeforeRetry(attempt);
                     continue;
                 }
@@ -52,19 +59,54 @@ public final class CutVideoLibrarySync {
                 JSONObject snapshot;
                 try {
                     snapshot = buildSnapshot(context);
-                } catch (Exception ignored) {
+                } catch (Exception error) {
+                    showStatus(context, "Synchro bloquée pendant lecture bibliothèque: " + shortMessage(error));
                     return;
                 }
 
-                int syncCode = postJson(BASE_URL + "/api/library/sync", snapshot, token);
-                if (syncCode >= 200 && syncCode < 300) {
+                int projectCount = snapshot.optJSONArray("projects") == null ? 0 : snapshot.optJSONArray("projects").length();
+                int videoCount = 0;
+                JSONArray projects = snapshot.optJSONArray("projects");
+                if (projects != null) {
+                    for (int i = 0; i < projects.length(); i++) {
+                        JSONObject project = projects.optJSONObject(i);
+                        if (project != null && project.optJSONArray("videos") != null) {
+                            videoCount += project.optJSONArray("videos").length();
+                        }
+                    }
+                }
+
+                lastSyncCode = postJson(BASE_URL + "/api/library/sync", snapshot, token);
+                if (lastSyncCode >= 200 && lastSyncCode < 300) {
+                    showStatus(context, "Synchro ChatGPT OK — " + projectCount + " dossiers / " + videoCount + " vidéos");
                     return;
                 }
-            } catch (Exception ignored) {
-                // Render gratuit peut être en veille : les tentatives suivantes reprennent automatiquement.
+                lastError = "SYNC HTTP " + lastSyncCode;
+            } catch (Exception error) {
+                lastError = shortMessage(error);
             }
             if (attempt < MAX_ATTEMPTS) sleepBeforeRetry(attempt);
         }
+
+        String detail = lastError.isEmpty()
+                ? "PAIR " + lastPairCode + " / SYNC " + lastSyncCode
+                : lastError;
+        showStatus(context, "Échec synchro ChatGPT — " + detail);
+    }
+
+    private static void showStatus(Context context, String message) {
+        new Handler(Looper.getMainLooper()).post(() ->
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        );
+    }
+
+    private static String shortMessage(Throwable error) {
+        String message = error == null ? "erreur inconnue" : error.getMessage();
+        if (message == null || message.trim().isEmpty()) {
+            return error == null ? "erreur inconnue" : error.getClass().getSimpleName();
+        }
+        message = message.trim();
+        return message.length() > 120 ? message.substring(0, 120) : message;
     }
 
     private static void sleepBeforeRetry(int attempt) {
@@ -86,12 +128,11 @@ public final class CutVideoLibrarySync {
         return created;
     }
 
-    private static boolean pair(String token) throws Exception {
+    private static int pair(String token) throws Exception {
         JSONObject body = new JSONObject();
         body.put("device_token", token);
         body.put("app_version", BuildConfig.VERSION_NAME);
-        int responseCode = postJson(BASE_URL + "/api/library/pair", body, null);
-        return responseCode >= 200 && responseCode < 300;
+        return postJson(BASE_URL + "/api/library/pair", body, null);
     }
 
     private static int postJson(String target, JSONObject body, String bearerToken) throws Exception {
