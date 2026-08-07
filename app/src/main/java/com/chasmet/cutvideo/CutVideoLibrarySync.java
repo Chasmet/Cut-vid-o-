@@ -10,8 +10,10 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -97,12 +99,17 @@ public final class CutVideoLibrarySync {
 
         JSONArray projectsJson = new JSONArray();
         Map<String, String> projectByVideoUri = new HashMap<>();
-        List<SavedVideoFolder> folders = MediaStoreRepository.loadSavedVideoFolders(context);
+        List<SavedVideoFolder> folders = new ArrayList<>(MediaStoreRepository.loadSavedVideoFolders(context));
+        folders.sort((left, right) -> naturalCompare(left.getKey(), right.getKey()));
+
         for (SavedVideoFolder folder : folders) {
             JSONObject projectJson = new JSONObject();
             projectJson.put("name", folder.getKey());
             JSONArray videosJson = new JSONArray();
-            for (SavedVideo video : folder.getVideos()) {
+
+            List<SavedVideo> orderedVideos = new ArrayList<>(folder.getVideos());
+            orderedVideos.sort((left, right) -> naturalCompare(left.getName(), right.getName()));
+            for (SavedVideo video : orderedVideos) {
                 JSONObject videoJson = new JSONObject();
                 videoJson.put("name", video.getName());
                 videoJson.put("duration_ms", Math.max(0L, video.getDurationMs()));
@@ -134,5 +141,38 @@ public final class CutVideoLibrarySync {
         }
         root.put("schedules", schedulesJson);
         return root;
+    }
+
+    private static int naturalCompare(String leftValue, String rightValue) {
+        String left = leftValue == null ? "" : leftValue.toLowerCase(Locale.ROOT);
+        String right = rightValue == null ? "" : rightValue.toLowerCase(Locale.ROOT);
+        int leftIndex = 0;
+        int rightIndex = 0;
+
+        while (leftIndex < left.length() && rightIndex < right.length()) {
+            char leftChar = left.charAt(leftIndex);
+            char rightChar = right.charAt(rightIndex);
+            if (Character.isDigit(leftChar) && Character.isDigit(rightChar)) {
+                int leftEnd = leftIndex;
+                int rightEnd = rightIndex;
+                while (leftEnd < left.length() && Character.isDigit(left.charAt(leftEnd))) leftEnd++;
+                while (rightEnd < right.length() && Character.isDigit(right.charAt(rightEnd))) rightEnd++;
+
+                String leftNumber = left.substring(leftIndex, leftEnd).replaceFirst("^0+(?!$)", "");
+                String rightNumber = right.substring(rightIndex, rightEnd).replaceFirst("^0+(?!$)", "");
+                if (leftNumber.length() != rightNumber.length()) {
+                    return Integer.compare(leftNumber.length(), rightNumber.length());
+                }
+                int numberCompare = leftNumber.compareTo(rightNumber);
+                if (numberCompare != 0) return numberCompare;
+                leftIndex = leftEnd;
+                rightIndex = rightEnd;
+                continue;
+            }
+            if (leftChar != rightChar) return Character.compare(leftChar, rightChar);
+            leftIndex++;
+            rightIndex++;
+        }
+        return Integer.compare(left.length(), right.length());
     }
 }
