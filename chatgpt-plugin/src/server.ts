@@ -8,35 +8,8 @@ const app = express();
 app.use(express.json({ limit: "1mb" }));
 
 const PORT = Number(process.env.PORT ?? 3000);
-
-const platformSchema = z.enum([
-  "youtube",
-  "tiktok",
-  "instagram",
-  "x",
-  "facebook",
-  "autre",
-]);
-
-function secondsToClock(totalSeconds: number): string {
-  const seconds = Math.max(0, Math.floor(totalSeconds));
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return h > 0
-    ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-    : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
-function sanitizeBaseName(value: string): string {
-  const cleaned = value
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9_-]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .replace(/_+/g, "_");
-  return cleaned || "video";
-}
+const platformSchema = z.enum(["youtube", "tiktok", "instagram", "x", "facebook", "autre"]);
+const statusSchema = z.enum(["a_programmer", "programme", "a_publier", "publie"]);
 
 function normalizeHashtags(values: string[]): string[] {
   const unique = new Set<string>();
@@ -49,197 +22,165 @@ function normalizeHashtags(values: string[]): string[] {
   return [...unique];
 }
 
+function clipboardBlock(title: string, description: string, hashtags: string[]): string {
+  const lines = [`Titre: ${title.trim()}`];
+  if (description.trim()) lines.push(`Description: ${description.trim()}`);
+  if (hashtags.length) lines.push(`Hashtags: ${hashtags.join(" ")}`);
+  return lines.join("\n");
+}
+
+function statusLabel(status: z.infer<typeof statusSchema>): string {
+  if (status === "programme") return "PROGRAMMÉ";
+  if (status === "a_publier") return "À PUBLIER";
+  if (status === "publie") return "PUBLIÉ";
+  return "À PROGRAMMER";
+}
+
 function createServer(): McpServer {
-  const server = new McpServer({
-    name: "cut-video-companion",
-    version: "1.0.0",
-  });
+  const server = new McpServer({ name: "cut-video-publication-companion", version: "1.1.0" });
 
   server.registerTool(
-    "plan_video_cuts",
+    "prepare_cutvideo_metadata",
     {
-      title: "Planifier les découpes Cut Vidéo",
+      title: "Préparer les métadonnées Cut Vidéo",
       description:
-        "Use this when the user wants to split a video into equal pieces before using the Android Cut Vidéo app. It calculates exact start/end times and MP4 filenames; it never uploads or edits the video.",
-      inputSchema: {
-        duration_seconds: z.number().positive().max(86400),
-        segment_seconds: z.number().int().min(1).max(600),
-        base_name: z.string().min(1).max(80).default("video"),
-        start_index: z.number().int().min(1).max(9999).default(1),
-      },
-      annotations: {
-        readOnlyHint: true,
-        destructiveHint: false,
-        openWorldHint: false,
-        idempotentHint: true,
-      },
-    },
-    async ({ duration_seconds, segment_seconds, base_name, start_index }) => {
-      const safeBase = sanitizeBaseName(base_name);
-      const parts = [];
-      let index = start_index;
-
-      for (let start = 0; start < duration_seconds; start += segment_seconds) {
-        const end = Math.min(start + segment_seconds, duration_seconds);
-        parts.push({
-          index,
-          filename: `${safeBase}_${String(index).padStart(2, "0")}.mp4`,
-          start_seconds: start,
-          end_seconds: end,
-          duration_seconds: end - start,
-          start: secondsToClock(start),
-          end: secondsToClock(end),
-        });
-        index += 1;
-      }
-
-      const structuredContent = {
-        total_duration_seconds: duration_seconds,
-        segment_seconds,
-        count: parts.length,
-        parts,
-      };
-
-      return {
-        structuredContent,
-        content: [
-          {
-            type: "text",
-            text: `Plan prêt : ${parts.length} morceau(x) de ${segment_seconds} s maximum. La vidéo reste locale sur le téléphone.`,
-          },
-        ],
-      };
-    },
-  );
-
-  server.registerTool(
-    "prepare_social_metadata",
-    {
-      title: "Préparer les métadonnées pour Cut Vidéo",
-      description:
-        "Use this when the user has a title, description/caption and hashtags for YouTube, TikTok, Instagram, X, Facebook or another app. It returns text ready to copy into Cut Vidéo's clipboard import.",
+        "Use this when the user asks ChatGPT to prepare publication metadata for a video. Return only optimized title, description and hashtags in the exact clipboard format understood by the Cut Vidéo Android app.",
       inputSchema: {
         platform: platformSchema,
         title: z.string().trim().min(1).max(300),
         description: z.string().trim().max(5000).default(""),
         hashtags: z.array(z.string()).max(60).default([]),
       },
-      annotations: {
-        readOnlyHint: true,
-        destructiveHint: false,
-        openWorldHint: false,
-        idempotentHint: true,
-      },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
     },
     async ({ platform, title, description, hashtags }) => {
-      const normalizedTags = normalizeHashtags(hashtags);
-      const lines = [title.trim()];
-      if (description.trim()) lines.push(description.trim());
-      if (normalizedTags.length) lines.push(normalizedTags.join(" "));
-      const clipboardText = lines.join("\n");
+      const tags = normalizeHashtags(hashtags);
+      const text = clipboardBlock(title, description, tags);
+      return {
+        structuredContent: { platform, title: title.trim(), description: description.trim(), hashtags: tags, clipboard_text: text },
+        content: [{ type: "text", text }],
+      };
+    },
+  );
+
+  server.registerTool(
+    "prepare_cutvideo_publication_sheet",
+    {
+      title: "Créer la fiche de programmation Cut Vidéo",
+      description:
+        "Use this when the user wants ChatGPT to organize one or more planned social publications for Cut Vidéo. Produce a clean ordered schedule plus a compact fiche that can be pasted into the app's dedicated notes block. Do not edit or cut video files.",
+      inputSchema: {
+        fiche_title: z.string().trim().min(1).max(120),
+        timezone: z.string().trim().default("Europe/Paris"),
+        notes: z.string().trim().max(3000).default(""),
+        publications: z.array(z.object({
+          order: z.number().int().min(1).max(999),
+          video_name: z.string().trim().min(1).max(250),
+          platform: platformSchema,
+          date: z.string().trim().min(8).max(20),
+          time: z.string().trim().min(4).max(10),
+          visibility: z.string().trim().max(80).default(""),
+          status: statusSchema.default("a_programmer"),
+          title: z.string().trim().min(1).max(300),
+          description: z.string().trim().max(5000).default(""),
+          hashtags: z.array(z.string()).max(60).default([]),
+        })).min(1).max(100),
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
+    },
+    async ({ fiche_title, timezone, notes, publications }) => {
+      const ordered = [...publications]
+        .sort((a, b) => a.order - b.order)
+        .map((p) => {
+          const tags = normalizeHashtags(p.hashtags);
+          return { ...p, hashtags: tags, clipboard_text: clipboardBlock(p.title, p.description, tags) };
+        });
+
+      const ficheLines = [
+        `FICHE PUBLICATION — ${fiche_title}`,
+        `Fuseau: ${timezone}`,
+        `Total: ${ordered.length} publication(s)`,
+        "",
+      ];
+
+      for (const p of ordered) {
+        ficheLines.push(
+          `#${p.order} — ${p.video_name}`,
+          `Réseau: ${p.platform.toUpperCase()}`,
+          `Date: ${p.date} à ${p.time}`,
+          `Statut: ${statusLabel(p.status)}`,
+          p.visibility ? `Visibilité: ${p.visibility}` : "",
+          `Titre: ${p.title}`,
+          p.description ? `Description: ${p.description}` : "",
+          p.hashtags.length ? `Hashtags: ${p.hashtags.join(" ")}` : "",
+          ""
+        );
+      }
+
+      if (notes) ficheLines.push("NOTES", notes);
+      const fiche = ficheLines.filter((line, index, array) => !(line === "" && array[index - 1] === "")).join("\n").trim();
 
       return {
         structuredContent: {
-          platform,
-          title: title.trim(),
-          description: description.trim(),
-          hashtags: normalizedTags,
-          clipboard_text: clipboardText,
+          fiche_title,
+          timezone,
+          count: ordered.length,
+          publications: ordered,
+          fiche_bloc: fiche,
         },
-        content: [
-          {
-            type: "text",
-            text: clipboardText,
-          },
-        ],
+        content: [{ type: "text", text: fiche }],
       };
     },
   );
 
   server.registerTool(
-    "prepare_publication_pack",
+    "prepare_cutvideo_publication_pack",
     {
-      title: "Préparer un pack multi-réseaux",
+      title: "Préparer métadonnées + programmation + fiche",
       description:
-        "Use this when the user wants separate Cut Vidéo metadata blocks for several social networks. The model should write network-specific copy first, then call this tool to normalize it for clipboard import.",
+        "Use this as the main Cut Vidéo companion tool when the user asks for a complete publication plan. ChatGPT should decide the copy and schedule from the user's request, then this tool formats everything into an ordered list, per-video clipboard metadata, and one fiche for the app's dedicated block.",
       inputSchema: {
-        items: z
-          .array(
-            z.object({
-              platform: platformSchema,
-              title: z.string().trim().min(1).max(300),
-              description: z.string().trim().max(5000).default(""),
-              hashtags: z.array(z.string()).max(60).default([]),
-            }),
-          )
-          .min(1)
-          .max(12),
+        project: z.string().trim().min(1).max(120),
+        timezone: z.string().trim().default("Europe/Paris"),
+        publications: z.array(z.object({
+          order: z.number().int().min(1).max(999),
+          video_name: z.string().trim().min(1).max(250),
+          platform: platformSchema,
+          date: z.string().trim().min(8).max(20),
+          time: z.string().trim().min(4).max(10),
+          status: statusSchema.default("a_programmer"),
+          visibility: z.string().trim().max(80).default(""),
+          title: z.string().trim().min(1).max(300),
+          description: z.string().trim().max(5000).default(""),
+          hashtags: z.array(z.string()).max(60).default([]),
+        })).min(1).max(100),
       },
-      annotations: {
-        readOnlyHint: true,
-        destructiveHint: false,
-        openWorldHint: false,
-        idempotentHint: true,
-      },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
     },
-    async ({ items }) => {
-      const prepared = items.map((item) => {
-        const tags = normalizeHashtags(item.hashtags);
-        const lines = [item.title.trim()];
-        if (item.description.trim()) lines.push(item.description.trim());
-        if (tags.length) lines.push(tags.join(" "));
-        return {
-          platform: item.platform,
-          title: item.title.trim(),
-          description: item.description.trim(),
-          hashtags: tags,
-          clipboard_text: lines.join("\n"),
-        };
+    async ({ project, timezone, publications }) => {
+      const ordered = [...publications].sort((a, b) => a.order - b.order).map((p) => {
+        const tags = normalizeHashtags(p.hashtags);
+        return { ...p, hashtags: tags, clipboard_text: clipboardBlock(p.title, p.description, tags) };
       });
 
-      return {
-        structuredContent: { items: prepared },
-        content: [
-          {
-            type: "text",
-            text: prepared
-              .map((item) => `[${item.platform.toUpperCase()}]\n${item.clipboard_text}`)
-              .join("\n\n---\n\n"),
-          },
-        ],
-      };
-    },
-  );
+      const fiche = [
+        `FICHE PUBLICATION — ${project}`,
+        `Fuseau: ${timezone}`,
+        `Total: ${ordered.length}`,
+        "",
+        ...ordered.flatMap((p) => [
+          `${p.order}. ${p.video_name} — ${p.platform.toUpperCase()}`,
+          `${p.date} ${p.time} — ${statusLabel(p.status)}${p.visibility ? ` — ${p.visibility}` : ""}`,
+          `Titre: ${p.title}`,
+          p.description ? `Description: ${p.description}` : "",
+          p.hashtags.length ? `Hashtags: ${p.hashtags.join(" ")}` : "",
+          "",
+        ]),
+      ].filter((line, index, array) => !(line === "" && array[index - 1] === "")).join("\n").trim();
 
-  server.registerTool(
-    "recommend_cut_presets",
-    {
-      title: "Recommander des durées de découpe",
-      description:
-        "Use this when the user knows the video duration but is unsure whether to cut it into 15, 30, 60 or 90 second pieces. Returns the number of resulting clips for each Cut Vidéo preset.",
-      inputSchema: {
-        duration_seconds: z.number().positive().max(86400),
-      },
-      annotations: {
-        readOnlyHint: true,
-        destructiveHint: false,
-        openWorldHint: false,
-        idempotentHint: true,
-      },
-    },
-    async ({ duration_seconds }) => {
-      const presets = [15, 30, 60, 90].map((seconds) => ({
-        seconds,
-        clips: Math.ceil(duration_seconds / seconds),
-      }));
       return {
-        structuredContent: { duration_seconds, presets },
-        content: [
-          {
-            type: "text",
-            text: presets.map((p) => `${p.seconds} s → ${p.clips} morceau(x)`).join("\n"),
-          },
-        ],
+        structuredContent: { project, timezone, publications: ordered, fiche_bloc: fiche },
+        content: [{ type: "text", text: fiche }],
       };
     },
   );
@@ -249,37 +190,30 @@ function createServer(): McpServer {
 
 app.get("/", (_req, res) => {
   res.json({
-    name: "Cut Vidéo ChatGPT Companion",
+    name: "Cut Vidéo ChatGPT Publication Companion",
+    version: "1.1.0",
     status: "ok",
     mcp: "/mcp",
+    purpose: "metadata, publication planning and dedicated fiche only",
     privacy: "No video files are uploaded or processed by this server.",
   });
 });
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
-});
+app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
 app.post("/mcp", async (req, res) => {
   const server = createServer();
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => randomUUID(),
-  });
-
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: () => randomUUID() });
   try {
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
   } catch (error) {
     console.error("MCP request failed", error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: "MCP request failed" });
-    }
+    if (!res.headersSent) res.status(500).json({ error: "MCP request failed" });
   } finally {
     await transport.close().catch(() => undefined);
     await server.close().catch(() => undefined);
   }
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Cut Vidéo MCP listening on port ${PORT}`);
-});
+app.listen(PORT, "0.0.0.0", () => console.log(`Cut Vidéo publication MCP listening on port ${PORT}`));
