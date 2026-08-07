@@ -39,19 +39,23 @@ public final class CutVideoLibrarySync {
 
     private static void syncNow(Context context) {
         String token = getOrCreateDeviceToken(context);
-        JSONObject snapshot;
-        try {
-            snapshot = buildSnapshot(context);
-        } catch (Exception ignored) {
-            return;
-        }
 
+        // Contacte d'abord Render. Ainsi, même si la construction du catalogue échoue
+        // sur un appareil particulier, le serveur reçoit au moins la tentative de connexion.
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 if (!pair(token)) {
                     if (attempt < MAX_ATTEMPTS) sleepBeforeRetry(attempt);
                     continue;
                 }
+
+                JSONObject snapshot;
+                try {
+                    snapshot = buildSnapshot(context);
+                } catch (Exception ignored) {
+                    return;
+                }
+
                 int syncCode = postJson(BASE_URL + "/api/library/sync", snapshot, token);
                 if (syncCode >= 200 && syncCode < 300) {
                     return;
@@ -85,6 +89,7 @@ public final class CutVideoLibrarySync {
     private static boolean pair(String token) throws Exception {
         JSONObject body = new JSONObject();
         body.put("device_token", token);
+        body.put("app_version", BuildConfig.VERSION_NAME);
         int responseCode = postJson(BASE_URL + "/api/library/pair", body, null);
         return responseCode >= 200 && responseCode < 300;
     }
