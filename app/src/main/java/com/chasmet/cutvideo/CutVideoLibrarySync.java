@@ -1,0 +1,138 @@
+package com.chasmet.cutvideo;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+/** Synchronise uniquement le catalogue et les programmations. Les vidéos ne sont jamais envoyées. */
+public final class CutVideoLibrarySync {
+
+    private static final String BASE_URL = "https://cut-video-chatgpt-mcp.onrender.com";
+    private static final String PREFS = "cut_video_chatgpt_sync";
+    private static final String TOKEN_KEY = "device_token";
+    private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
+
+    private CutVideoLibrarySync() {
+    }
+
+    public static void syncAsync(Context context) {
+        Context appContext = context.getApplicationContext();
+        EXECUTOR.execute(() -> syncNow(appContext));
+    }
+
+    private static void syncNow(Context context) {
+        try {
+            String token = getOrCreateDeviceToken(context);
+            if (!pair(token)) {
+                return;
+            }
+            postJson(BASE_URL + "/api/library/sync", buildSnapshot(context), token);
+        } catch (Exception ignored) {
+            // La synchronisation ne doit jamais empêcher Cut Vidéo de fonctionner hors ligne.
+        }
+    }
+
+    private static String getOrCreateDeviceToken(Context context) {
+        SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String existing = preferences.getString(TOKEN_KEY, "");
+        if (existing != null && !existing.trim().isEmpty()) {
+            return existing.trim();
+        }
+        String created = UUID.randomUUID().toString() + UUID.randomUUID();
+        preferences.edit().putString(TOKEN_KEY, created).apply();
+        return created;
+    }
+
+    private static boolean pair(String token) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("device_token", token);
+        return postJson(BASE_URL + "/api/library/pair", body, null) >= 200
+                && postJson(BASE_URL + "/api/library/pair", body, null) < 300;
+    }
+
+    private static int postJson(String target, JSONObject body, String bearerToken) throws Exception {
+        HttpURLConnection connection = null;
+        try {
+            byte[] payload = body.toString().getBytes(StandardCharsets.UTF_8);
+            connection = (HttpURLConnection) new URL(target).openConnection();
+            connection.setConnectTimeout(15_000);
+            connection.setReadTimeout(20_000);
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+            connection.setRequestProperty("Accept", "application/json");
+            if (bearerToken != null && !bearerToken.isEmpty()) {
+                connection.setRequestProperty("Authorization", "Bearer " + bearerToken);
+            }
+            connection.setDoOutput(true);
+            connection.setFixedLengthStreamingMode(payload.length);
+            try (OutputStream output = connection.getOutputStream()) {
+                output.write(payload);
+                output.flush();
+            }
+            return connection.getResponseCode();
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
+    private static JSONObject buildSnapshot(Context context) throws Exception {
+        JSONObject root = new JSONObject();
+        root.put("synced_at_millis", System.currentTimeMillis());
+        root.put("app_version", BuildConfig.VERSION_NAME);
+
+        JSONArray projectsJson = new JSONArray();
+        Map<String, String> projectByVideoUri = new HashMap<>();
+        List<SavedVideoFolder> folders = MediaStoreRepository.loadSavedVideoFolders(context);
+        for (SavedVideoFolder folder : folders) {
+            JSONObject projectJson = new JSONObject();
+            projectJson.put("name", folder.getKey());
+            JSONArray videosJson = new JSONArray();
+            for (SavedVideo video : folder.getVideos()) {
+                JSONObject videoJson = new JSONObject();
+                videoJson.put("name", video.getName());
+                videoJson.put("duration_ms", Math.max(0L, video.getDurationMs()));
+                videoJson.put("size_bytes", Math.max(0L, video.getSizeBytes()));
+                videoJson.put("date_added_seconds", Math.max(0L, video.getDateAddedSeconds()));
+                videosJson.put(videoJson);
+                projectByVideoUri.put(video.getUri().toString(), folder.getKey());
+            }
+            projectJson.put("videos", videosJson);
+            projectsJson.put(projectJson);
+        }
+        root.put("projects", projectsJson);
+
+        JSONArray schedulesJson = new JSONArray();
+        for (PublicationSchedule schedule : PublicationScheduleRepository.listAll(context)) {
+            JSONObject scheduleJson = new JSONObject();
+            scheduleJson.put("id", schedule.getId());
+            scheduleJson.put("project", projectByVideoUri.getOrDefault(schedule.getVideoUri(), ""));
+            scheduleJson.put("video_name", schedule.getVideoName());
+            scheduleJson.put("platform", schedule.getPlatformKey());
+            scheduleJson.put("scheduled_at_millis", Math.max(0L, schedule.getScheduledAtMillis()));
+            scheduleJson.put("title", schedule.getTitle());
+            scheduleJson.put("description", schedule.getDescription());
+            scheduleJson.put("hashtags", schedule.getHashtags());
+            scheduleJson.put("visibility", schedule.getVisibility());
+            scheduleJson.put("account", PublicationAccountRepository.get(context, schedule.getId()));
+            scheduleJson.put("published", schedule.isPublished());
+            schedulesJson.put(scheduleJson);
+        }
+        root.put("schedules", schedulesJson);
+        return root;
+    }
+}
