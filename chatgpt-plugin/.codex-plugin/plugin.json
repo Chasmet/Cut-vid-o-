@@ -1,0 +1,21 @@
+{
+  "name": "cut-video-publication",
+  "version": "1.0.0",
+  "description": "Prépare les métadonnées, la programmation et la fiche de publication de Cut Vidéo.",
+  "repository": "https://github.com/Chasmet/Cut-vid-o-",
+  "license": "MIT",
+  "keywords": ["video", "social", "metadata", "scheduling", "youtube", "tiktok", "instagram"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Cut Vidéo Publication",
+    "shortDescription": "Métadonnées ≤ 100 caractères, programmation et fiche Cut Vidéo",
+    "longDescription": "Prépare des métadonnées adaptées au nom du fichier vidéo, organise les publications par compte et réseau, puis génère une fiche récapitulative pour Cut Vidéo.",
+    "developerName": "Chasmet",
+    "category": "Productivity",
+    "capabilities": ["Read"],
+    "defaultPrompt": [
+      "Prépare les métadonnées et la programmation de cette vidéo pour Cut Vidéo.",
+      "Crée ma fiche de publication Cut Vidéo pour mes réseaux."
+    ]
+  }
+}
