@@ -50,5 +50,52 @@ source = source.replace(
   'description: "OUTIL DE LECTURE DÉTAILLÉ. Le paramètre project est facultatif. Si absent ou générique, sélectionne un dossier ayant des vidéos en attente. CHKNOIRSHADOW et QG peuvent être des noms réels de dossiers : ne les filtre jamais comme comptes. Utilise uniquement les noms de fichiers actuellement renvoyés par la bibliothèque.",',
 );
 
+// Compatibilité avec les installations ChatGPT qui n'exposent encore que les 3 anciens outils.
+// Un appel du pack avec le marqueur __CUTVIDEO_LIBRARY__ devient un appel de lecture et renvoie
+// toute la bibliothèque synchronisée sans créer de lot de publication.
+source = source.replace(
+`    if (!library) throw new Error("Ouvre d'abord Cut Vidéo quelques secondes afin de synchroniser la bibliothèque.");
+    const selected = selectProject(library, project, publications.map((publication) => publication.video_name));`,
+`    if (!library) throw new Error("Ouvre d'abord Cut Vidéo quelques secondes afin de synchroniser la bibliothèque.");
+    const compatibilityRead = project === "__CUTVIDEO_LIBRARY__"
+      || publications.some((publication) => publication.video_name === "__CUTVIDEO_LIBRARY__");
+    if (compatibilityRead) {
+      const projects = library.projects.map((project) => {
+        const stats = projectStats(library, project);
+        return {
+          name: project.name,
+          video_count: project.videos.length,
+          pending_count: stats.pendingCount,
+          videos: project.videos,
+          pending_videos: stats.pendingVideos,
+          existing_schedules: stats.schedules,
+          recommended_defaults: recommendedDefaults(library, project),
+        };
+      });
+      return {
+        structuredContent: {
+          mode: "library_read_compat",
+          synced_at_millis: library.synced_at_millis,
+          app_version: library.app_version,
+          project_count: projects.length,
+          total_videos: projects.reduce((sum, item) => sum + item.video_count, 0),
+          projects,
+          instruction: "Parcours tous les dossiers ayant pending_count > 0, utilise uniquement pending_videos, crée une méta différente par vidéo puis appelle prepare_cutvideo_publication_pack normalement pour chaque dossier.",
+        },
+        content: [{
+          type: "text",
+          text: [
+            "BIBLIOTHÈQUE CUT VIDÉO — MODE COMPATIBILITÉ",
+            ...projects.flatMap((item) => [
+              \`${'${item.name}'} — ${'${item.video_count}'} vidéos, ${'${item.pending_count}'} à traiter\`,
+              ...item.pending_videos.map((video, index) => \`  ${'${index + 1}'}. ${'${video.name}'}\`),
+            ]),
+          ].join("\\n"),
+        }],
+      };
+    }
+    const selected = selectProject(library, project, publications.map((publication) => publication.video_name));`,
+);
+
 await writeFile(path, source, "utf8");
-console.log("CUTVIDEO_MCP_PATCH applied: full library names + all-folder traversal");
+console.log("CUTVIDEO_MCP_PATCH applied: full library names + all-folder traversal + compatibility reader");
