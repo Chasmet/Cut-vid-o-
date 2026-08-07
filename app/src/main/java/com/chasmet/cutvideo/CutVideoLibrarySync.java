@@ -98,10 +98,23 @@ public final class CutVideoLibrarySync {
         root.put("synced_at_millis", System.currentTimeMillis());
         root.put("app_version", BuildConfig.VERSION_NAME);
 
+        List<SavedVideoFolder> folders = MediaStoreRepository.loadSavedVideoFolders(context);
+        VideoCollectionRepository.reconcile(context, folders);
+
+        // Conserve l'arborescence réelle affichée par l'application :
+        // classement -> dossier -> vidéos. Un nom de classement n'est jamais interprété
+        // comme un compte social ici.
+        Map<String, String> collectionNameByFolderKey = new HashMap<>();
+        for (VideoCollection collection : VideoCollectionRepository.list(context, folders)) {
+            for (SavedVideoFolder folder : collection.getFolders()) {
+                collectionNameByFolderKey.put(folder.getKey(), collection.getName());
+            }
+        }
+
         Map<String, List<SavedVideo>> videosByProject = new LinkedHashMap<>();
         Map<String, String> projectByVideoUri = new HashMap<>();
 
-        for (SavedVideoFolder folder : MediaStoreRepository.loadSavedVideoFolders(context)) {
+        for (SavedVideoFolder folder : folders) {
             if (VideoFolderUtils.isLegacy(folder.getKey())) {
                 for (SavedVideo video : folder.getVideos()) {
                     String projectName = inferProjectName(video.getName());
@@ -111,14 +124,19 @@ public final class CutVideoLibrarySync {
                 continue;
             }
 
-            String projectName = VideoFolderUtils.displayName(folder.getKey()).trim();
-            if (projectName.isEmpty()) {
-                projectName = "Projet";
+            String folderName = VideoFolderUtils.displayName(folder.getKey()).trim();
+            if (folderName.isEmpty()) {
+                folderName = "Dossier";
             }
-            videosByProject.computeIfAbsent(projectName, ignored -> new ArrayList<>())
+            String collectionName = collectionNameByFolderKey.getOrDefault(folder.getKey(), "").trim();
+            String projectPath = collectionName.isEmpty()
+                    ? folderName
+                    : collectionName + " / " + folderName;
+
+            videosByProject.computeIfAbsent(projectPath, ignored -> new ArrayList<>())
                     .addAll(folder.getVideos());
             for (SavedVideo video : folder.getVideos()) {
-                projectByVideoUri.put(video.getUri().toString(), projectName);
+                projectByVideoUri.put(video.getUri().toString(), projectPath);
             }
         }
 
