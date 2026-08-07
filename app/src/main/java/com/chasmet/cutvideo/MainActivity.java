@@ -35,6 +35,9 @@ public final class MainActivity extends AppCompatActivity {
         binding.savedVideosCard.setOnClickListener(view -> startActivity(
                 new Intent(this, SavedVideosActivity.class)
         ));
+        binding.chatgptAssistantCard.setOnClickListener(view -> startActivity(
+                new Intent(this, ChatGptAssistantActivity.class)
+        ));
     }
 
     private void openVideoPicker() {
