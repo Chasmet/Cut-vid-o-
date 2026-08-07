@@ -6,7 +6,7 @@
   "description": "Compagnon MCP pour synchroniser toute la bibliothèque Cut Vidéo, choisir automatiquement le projet actif et préparer les métadonnées et programmations sans envoyer les fichiers vidéo.",
   "scripts": {
     "dev": "tsx watch src/server_auto.ts",
-    "start": "tsx src/seed_pack.ts && (tsx src/state_watch.ts & exec tsx src/server_auto.ts)",
+    "start": "tsx src/patch_server.ts && (tsx src/state_watch.ts & exec tsx src/server_auto.ts)",
     "typecheck": "tsc --noEmit"
   },
   "engines": {
