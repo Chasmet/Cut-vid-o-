@@ -59,8 +59,8 @@ public final class CutVideoLibrarySync {
     private static boolean pair(String token) throws Exception {
         JSONObject body = new JSONObject();
         body.put("device_token", token);
-        return postJson(BASE_URL + "/api/library/pair", body, null) >= 200
-                && postJson(BASE_URL + "/api/library/pair", body, null) < 300;
+        int responseCode = postJson(BASE_URL + "/api/library/pair", body, null);
+        return responseCode >= 200 && responseCode < 300;
     }
 
     private static int postJson(String target, JSONObject body, String bearerToken) throws Exception {
