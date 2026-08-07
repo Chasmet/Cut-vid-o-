@@ -71,6 +71,10 @@ public final class PublicationReminderReceiver extends BroadcastReceiver {
                 R.string.reminder_notification_message,
                 videoLabel
         );
+        String account = PublicationAccountRepository.get(context, schedule.getId());
+        if (!account.isEmpty()) {
+            message = message + " • Compte " + account;
+        }
 
         Notification notification = new Notification.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_calendar)
