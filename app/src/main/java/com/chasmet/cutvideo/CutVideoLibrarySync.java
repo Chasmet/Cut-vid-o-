@@ -27,6 +27,7 @@ public final class CutVideoLibrarySync {
     private static final String PREFS = "cut_video_chatgpt_sync";
     private static final String TOKEN_KEY = "device_token";
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
+    private static final int MAX_ATTEMPTS = 4;
 
     private CutVideoLibrarySync() {
     }
@@ -37,14 +38,36 @@ public final class CutVideoLibrarySync {
     }
 
     private static void syncNow(Context context) {
+        String token = getOrCreateDeviceToken(context);
+        JSONObject snapshot;
         try {
-            String token = getOrCreateDeviceToken(context);
-            if (!pair(token)) {
-                return;
-            }
-            postJson(BASE_URL + "/api/library/sync", buildSnapshot(context), token);
+            snapshot = buildSnapshot(context);
         } catch (Exception ignored) {
-            // La synchronisation ne doit jamais empêcher Cut Vidéo de fonctionner hors ligne.
+            return;
+        }
+
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                if (!pair(token)) {
+                    if (attempt < MAX_ATTEMPTS) sleepBeforeRetry(attempt);
+                    continue;
+                }
+                int syncCode = postJson(BASE_URL + "/api/library/sync", snapshot, token);
+                if (syncCode >= 200 && syncCode < 300) {
+                    return;
+                }
+            } catch (Exception ignored) {
+                // Render gratuit peut être en veille : les tentatives suivantes reprennent automatiquement.
+            }
+            if (attempt < MAX_ATTEMPTS) sleepBeforeRetry(attempt);
+        }
+    }
+
+    private static void sleepBeforeRetry(int attempt) {
+        try {
+            Thread.sleep(Math.min(15_000L, 3_000L * attempt));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -71,8 +94,8 @@ public final class CutVideoLibrarySync {
         try {
             byte[] payload = body.toString().getBytes(StandardCharsets.UTF_8);
             connection = (HttpURLConnection) new URL(target).openConnection();
-            connection.setConnectTimeout(15_000);
-            connection.setReadTimeout(20_000);
+            connection.setConnectTimeout(45_000);
+            connection.setReadTimeout(60_000);
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
             connection.setRequestProperty("Accept", "application/json");
@@ -101,9 +124,6 @@ public final class CutVideoLibrarySync {
         List<SavedVideoFolder> folders = MediaStoreRepository.loadSavedVideoFolders(context);
         VideoCollectionRepository.reconcile(context, folders);
 
-        // Conserve l'arborescence réelle affichée par l'application :
-        // classement -> dossier -> vidéos. Un nom de classement n'est jamais interprété
-        // comme un compte social ici.
         Map<String, String> collectionNameByFolderKey = new HashMap<>();
         for (VideoCollection collection : VideoCollectionRepository.list(context, folders)) {
             for (SavedVideoFolder folder : collection.getFolders()) {
