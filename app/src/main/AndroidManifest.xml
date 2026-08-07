@@ -16,6 +16,11 @@
         android:usesCleartextTraffic="false">
 
         <activity
+            android:name=".ChatGptAssistantActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".VideoScheduleActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
