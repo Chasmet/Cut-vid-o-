@@ -26,6 +26,18 @@ jobs:
       - name: Récupérer le projet
         uses: actions/checkout@v4
 
+      - name: Lire la version Android
+        id: app_version
+        shell: bash
+        run: |
+          VERSION_NAME=$(sed -n "s/.*versionName = '\([^']*\)'.*/\1/p" app/build.gradle | head -n 1)
+          if [ -z "$VERSION_NAME" ]; then
+            echo "Impossible de lire versionName dans app/build.gradle" >&2
+            exit 1
+          fi
+          echo "version=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "APK version: $VERSION_NAME"
+
       - name: Installer Java 17
         uses: actions/setup-java@v4
         with:
@@ -47,16 +59,18 @@ jobs:
         run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
 
       - name: Préparer le fichier à télécharger
+        env:
+          APP_VERSION: ${{ steps.app_version.outputs.version }}
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.7.1.apk
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/Cut-Video-v${APP_VERSION}.apk"
           cd dist
-          sha256sum Cut-Video-v1.7.1.apk > Cut-Video-v1.7.1.apk.sha256
+          sha256sum "Cut-Video-v${APP_VERSION}.apk" > "Cut-Video-v${APP_VERSION}.apk.sha256"
 
       - name: Publier l'APK
         uses: actions/upload-artifact@v4
         with:
-          name: Cut-Video-APK-v1.7.1
+          name: Cut-Video-APK-v${{ steps.app_version.outputs.version }}
           path: dist/
           if-no-files-found: error
           retention-days: 90
@@ -65,16 +79,16 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
+          APP_VERSION: ${{ steps.app_version.outputs.version }}
         run: |
-          if gh release view v1.7.1 > /dev/null 2>&1; then
-            gh release upload v1.7.1 \
-              dist/Cut-Video-v1.7.1.apk \
-              dist/Cut-Video-v1.7.1.apk.sha256 \
-              --clobber
+          TAG="v${APP_VERSION}"
+          APK="dist/Cut-Video-v${APP_VERSION}.apk"
+          SHA="dist/Cut-Video-v${APP_VERSION}.apk.sha256"
+          NOTES="Cut Vidéo ${APP_VERSION}. ChatGPT peut maintenant envoyer de vraies commandes de programmation à l'application. L'APK les récupère automatiquement quand elle est ouverte, écrit réellement les programmations et rappels Android, puis confirme le résultat au serveur. Tant que l'APK n'a pas confirmé l'écriture, le connecteur indique EN ATTENTE APK au lieu de PROGRAMMÉ."
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" "$SHA" --clobber
           else
-            gh release create v1.7.1 \
-              dist/Cut-Video-v1.7.1.apk \
-              dist/Cut-Video-v1.7.1.apk.sha256 \
-              --title "Cut Vidéo v1.7.1" \
-              --notes "Corrige la synchronisation ChatGPT : la bibliothèque, les dossiers et les vrais noms de vidéos sont envoyés immédiatement. L'analyse visuelle des 3 frames par vidéo s'effectue ensuite séparément en arrière-plan et ne peut plus bloquer la synchronisation principale. Le serveur MCP 2.1.1 expose aussi la bibliothèque via l'un des 3 outils historiques pour rester compatible avec les connexions ChatGPT qui gardent un ancien schéma."
+            gh release create "$TAG" "$APK" "$SHA" \
+              --title "Cut Vidéo v${APP_VERSION}" \
+              --notes "$NOTES"
           fi
