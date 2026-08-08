@@ -1,8 +1,11 @@
 package com.chasmet.cutvideo;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -14,8 +17,20 @@ import com.chasmet.cutvideo.databinding.ActivityMainBinding;
 
 public final class MainActivity extends AppCompatActivity {
 
+    private static final long REMOTE_POLL_INTERVAL_MS = 15_000L;
+    private static final String SYNC_PREFS = "cut_video_chatgpt_sync";
+    private static final String DEVICE_TOKEN_KEY = "device_token";
+
     private ActivityMainBinding binding;
     private ActivityResultLauncher<PickVisualMediaRequest> videoPicker;
+    private final Handler remotePollHandler = new Handler(Looper.getMainLooper());
+    private final Runnable remotePoll = new Runnable() {
+        @Override
+        public void run() {
+            pullRemoteScheduleCommands();
+            remotePollHandler.postDelayed(this, REMOTE_POLL_INTERVAL_MS);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +59,21 @@ public final class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         CutVideoLibrarySync.syncAsync(this);
+        remotePollHandler.removeCallbacks(remotePoll);
+        remotePollHandler.postDelayed(remotePoll, 4_000L);
+    }
+
+    @Override
+    protected void onPause() {
+        remotePollHandler.removeCallbacks(remotePoll);
+        super.onPause();
+    }
+
+    private void pullRemoteScheduleCommands() {
+        SharedPreferences preferences = getSharedPreferences(SYNC_PREFS, MODE_PRIVATE);
+        String token = preferences.getString(DEVICE_TOKEN_KEY, "");
+        if (token == null || token.trim().isEmpty()) return;
+        CutVideoRemoteScheduleSync.pullAsync(this, token.trim());
     }
 
     private void openVideoPicker() {
