@@ -86,40 +86,46 @@ if (!source.includes("function remoteScheduleFingerprint(")) {
   source = source.replace(helperMarker, helpers + "\n" + helperMarker);
 }
 
-source = source.replace(
+const stableStart = source.indexOf(helperMarker);
+const stableEnd = source.indexOf("\nfunction sendMcpError", stableStart);
+if (stableStart < 0 || stableEnd < 0) throw new Error("MCP 2.5 patch: stable server boundaries not found");
+let stable = source.slice(stableStart, stableEnd);
+
+stable = stable.replace(
   'title: "Programmer un lot Cut Vidéo",',
   'title: "Programmer réellement dans Cut Vidéo",',
 );
-source = source.replace(
+stable = stable.replace(
   'description: "Use this as the main Cut Vidéo tool. For every supplied video file, create network-specific metadata that matches that file, stays within 100 characters total, then organize the requested date/time schedule and return one clean fiche for the application\'s dedicated block. This tool does not cut videos and does not publish by API.",',
   'description: "PROGRAMMATION RÉELLE. Use this whenever the user asks to program or schedule Cut Vidéo files. It creates the real remote scheduling command consumed by the Android APK, waits for the APK acknowledgment, prevents immediate duplicate commands, and returns queued/applied/partial/failed. Say PROGRAMMÉ only when status is applied. queued means EN ATTENTE APK. It also generates network-specific metadata limited to 100 characters. It schedules inside Cut Vidéo; it does not directly publish to social networks.",',
 );
 
 const oldQueue = `    const remoteCommand = await enqueueRemoteScheduleCommand(realProject.name, ordered);\n    const fiche = [`;
 const newQueue = `    const remoteCommand = await enqueueRemoteScheduleCommandDeduped(realProject.name, ordered);\n    const remoteResult = await waitForRemoteScheduleCommand(remoteCommand.id, 18_000);\n    const remoteLabel = remoteScheduleStatusLabel(remoteResult.status);\n    const fiche = [`;
-if (source.includes(oldQueue)) {
-  source = source.replace(oldQueue, newQueue);
-} else if (!source.includes("const remoteResult = await waitForRemoteScheduleCommand")) {
+if (stable.includes(oldQueue)) {
+  stable = stable.replace(oldQueue, newQueue);
+} else if (!stable.includes("const remoteResult = await waitForRemoteScheduleCommand")) {
   throw new Error("MCP 2.5 patch: remote queue marker not found");
 }
 
-source = source.replace(
+stable = stable.replace(
   '        `${p.date} a ${p.time} • EN ATTENTE APK`,',
   '        `${p.date} a ${p.time} • ${remoteLabel}`,',
 );
-source = source.replace(
+stable = stable.replace(
   '      "ETAT APK: EN ATTENTE DE SYNCHRO — pas encore confirme comme programme",',
   '      `ETAT APK: ${remoteLabel}`,',
 );
 
 const oldStructured = `        remote_command_id: remoteCommand.id,\n        device_status: "en_attente_apk",\n        device_confirmed: false,\n        instruction: "La commande est en file d attente. Ne dis PROGRAMME qu apres confirmation APK visible dans remote_schedule_commands ou dans la bibliotheque synchronisee.",`;
 const newStructured = `        remote_command_id: remoteResult.id,\n        device_status: remoteResult.status,\n        device_confirmed: remoteResult.status !== "queued",\n        device_ack: remoteResult.ack ?? null,\n        instruction: remoteResult.status === "applied"\n          ? "PROGRAMMATION REELLEMENT ENREGISTREE DANS L APK. Tu peux dire PROGRAMME."\n          : remoteResult.status === "partial"\n            ? "PROGRAMMATION PARTIELLE. Indique applied/missing/invalid et ne prétends pas que tout est programmé."\n            : remoteResult.status === "failed"\n              ? "ECHEC DE PROGRAMMATION DANS L APK. Rien ne doit être présenté comme programmé."\n              : "COMMANDE EN ATTENTE APK. Ne dis pas PROGRAMME tant que Cut Vidéo n'a pas confirmé.",`;
-if (source.includes(oldStructured)) {
-  source = source.replace(oldStructured, newStructured);
-} else if (!source.includes("device_ack: remoteResult.ack")) {
+if (stable.includes(oldStructured)) {
+  stable = stable.replace(oldStructured, newStructured);
+} else if (!stable.includes("device_ack: remoteResult.ack")) {
   throw new Error("MCP 2.5 patch: structured result marker not found");
 }
 
+source = source.slice(0, stableStart) + stable + source.slice(stableEnd);
 source = source.replaceAll('version: "2.4.1"', 'version: "2.5.0"');
 source = source.replaceAll("Cut Vidéo MCP v2.4.1 listening on port", "Cut Vidéo MCP v2.5.0 listening on port");
 
