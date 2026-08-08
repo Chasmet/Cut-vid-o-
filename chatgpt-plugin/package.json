@@ -1,12 +1,12 @@
 {
   "name": "cut-video-chatgpt-plugin",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
-  "description": "Compagnon MCP Cut Vidéo autonome : bibliothèque instantanée, récupération automatique, lots multi-dossiers et analyse visuelle progressive sans envoyer les vidéos complètes.",
+  "description": "Compagnon MCP Cut Vidéo stable : trois outils compatibles avec le snapshot ChatGPT, bibliothèque instantanée et analyse visuelle progressive.",
   "scripts": {
     "dev": "tsx watch src/server_auto.ts",
-    "start": "tsx src/patch_server.ts && tsx src/patch_server_v2.ts && tsx src/patch_media.ts && tsx src/patch_sync_v171.ts && (tsx src/state_watch.ts & exec tsx src/server_auto.ts)",
+    "start": "tsx src/patch_server.ts && tsx src/patch_server_v2.ts && tsx src/patch_media.ts && tsx src/patch_sync_v171.ts && tsx src/patch_connector_stable.ts && tsx src/patch_connector_escape_fix.ts && (tsx src/state_watch.ts & exec tsx src/server_auto.ts)",
     "typecheck": "tsc --noEmit"
   },
   "engines": {
