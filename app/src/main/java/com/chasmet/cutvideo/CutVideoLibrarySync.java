@@ -24,15 +24,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Synchronise le catalogue, les programmations et quelques images représentatives.
- * Les fichiers vidéo complets ne sont jamais envoyés.
+ * Synchronise immédiatement le catalogue et les programmations avec ChatGPT.
+ * L'analyse visuelle est volontairement séparée : elle se fait ensuite en arrière-plan et ne peut
+ * jamais empêcher ChatGPT de voir les dossiers et les vrais noms de fichiers.
  */
 public final class CutVideoLibrarySync {
 
     private static final String BASE_URL = "https://cut-video-chatgpt-mcp.onrender.com";
     private static final String PREFS = "cut_video_chatgpt_sync";
     private static final String TOKEN_KEY = "device_token";
-    private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
+    private static final ExecutorService SYNC_EXECUTOR = Executors.newSingleThreadExecutor();
+    private static final ExecutorService FRAME_EXECUTOR = Executors.newSingleThreadExecutor();
     private static final int MAX_ATTEMPTS = 4;
 
     private CutVideoLibrarySync() {
@@ -41,7 +43,7 @@ public final class CutVideoLibrarySync {
     public static void syncAsync(Context context) {
         Context appContext = context.getApplicationContext();
         showStatus(appContext, "Cut Vidéo " + BuildConfig.VERSION_NAME + " — synchro ChatGPT démarrée");
-        EXECUTOR.execute(() -> syncNow(appContext));
+        SYNC_EXECUTOR.execute(() -> syncNow(appContext));
     }
 
     private static void syncNow(Context context) {
@@ -61,37 +63,26 @@ public final class CutVideoLibrarySync {
 
                 JSONObject snapshot;
                 try {
-                    snapshot = buildSnapshot(context, token);
+                    snapshot = buildSnapshot(context);
                 } catch (Exception error) {
                     showStatus(context, "Synchro bloquée pendant lecture bibliothèque: " + shortMessage(error));
                     return;
                 }
 
-                int projectCount = snapshot.optJSONArray("projects") == null ? 0 : snapshot.optJSONArray("projects").length();
-                int videoCount = 0;
-                int videoWithFramesCount = 0;
-                JSONArray projects = snapshot.optJSONArray("projects");
-                if (projects != null) {
-                    for (int i = 0; i < projects.length(); i++) {
-                        JSONObject project = projects.optJSONObject(i);
-                        JSONArray videos = project == null ? null : project.optJSONArray("videos");
-                        if (videos == null) continue;
-                        videoCount += videos.length();
-                        for (int v = 0; v < videos.length(); v++) {
-                            JSONObject video = videos.optJSONObject(v);
-                            JSONArray frameUrls = video == null ? null : video.optJSONArray("frame_urls");
-                            if (frameUrls != null && frameUrls.length() > 0) videoWithFramesCount++;
-                        }
-                    }
-                }
+                int projectCount = snapshot.optJSONArray("projects") == null
+                        ? 0
+                        : snapshot.optJSONArray("projects").length();
+                int videoCount = countVideos(snapshot);
 
+                // Priorité absolue : rendre les dossiers et noms de fichiers disponibles à ChatGPT.
                 lastSyncCode = postJson(BASE_URL + "/api/library/sync", snapshot, token);
                 if (lastSyncCode >= 200 && lastSyncCode < 300) {
                     showStatus(
                             context,
-                            "Synchro ChatGPT OK — " + projectCount + " dossiers / " + videoCount
-                                    + " vidéos / " + videoWithFramesCount + " analysables"
+                            "Synchro ChatGPT OK — " + projectCount + " dossiers / " + videoCount + " vidéos"
                     );
+                    // Les images sont secondaires et partent seulement après la réussite du catalogue.
+                    syncFramesAsync(context, token, videoCount);
                     return;
                 }
                 lastError = "SYNC HTTP " + lastSyncCode;
@@ -105,6 +96,59 @@ public final class CutVideoLibrarySync {
                 ? "PAIR " + lastPairCode + " / SYNC " + lastSyncCode
                 : lastError;
         showStatus(context, "Échec synchro ChatGPT — " + detail);
+    }
+
+    private static void syncFramesAsync(Context context, String token, int expectedVideoCount) {
+        FRAME_EXECUTOR.execute(() -> syncFramesNow(context, token, expectedVideoCount));
+    }
+
+    private static void syncFramesNow(Context context, String token, int expectedVideoCount) {
+        int analyzable = 0;
+        try {
+            LibraryIndex index = loadLibraryIndex(context);
+            List<String> projectNames = new ArrayList<>(index.videosByProject.keySet());
+            projectNames.sort(CutVideoLibrarySync::naturalCompare);
+
+            for (String projectName : projectNames) {
+                List<SavedVideo> videos = new ArrayList<>(index.videosByProject.get(projectName));
+                videos.sort((left, right) -> naturalCompare(left.getName(), right.getName()));
+                for (SavedVideo video : videos) {
+                    try {
+                        List<String> urls = VideoFrameSync.ensureFramesUploaded(
+                                context,
+                                token,
+                                projectName,
+                                video
+                        );
+                        if (!urls.isEmpty()) analyzable++;
+                    } catch (Exception ignored) {
+                        // Une seule vidéo défectueuse ne doit pas stopper les suivantes.
+                    }
+                }
+            }
+
+            if (analyzable > 0) {
+                showStatus(
+                        context,
+                        "Analyse ChatGPT prête — " + analyzable + "/" + expectedVideoCount + " vidéos analysables"
+                );
+            }
+        } catch (Exception ignored) {
+            // La bibliothèque est déjà synchronisée : aucune erreur d'image ne doit faire croire
+            // à l'utilisateur que la synchronisation principale a échoué.
+        }
+    }
+
+    private static int countVideos(JSONObject snapshot) {
+        int count = 0;
+        JSONArray projects = snapshot.optJSONArray("projects");
+        if (projects == null) return 0;
+        for (int i = 0; i < projects.length(); i++) {
+            JSONObject project = projects.optJSONObject(i);
+            JSONArray videos = project == null ? null : project.optJSONArray("videos");
+            if (videos != null) count += videos.length();
+        }
+        return count;
     }
 
     private static void showStatus(Context context, String message) {
@@ -175,11 +219,73 @@ public final class CutVideoLibrarySync {
         }
     }
 
-    private static JSONObject buildSnapshot(Context context, String bearerToken) throws Exception {
+    private static JSONObject buildSnapshot(Context context) throws Exception {
         JSONObject root = new JSONObject();
         root.put("synced_at_millis", System.currentTimeMillis());
         root.put("app_version", BuildConfig.VERSION_NAME);
 
+        LibraryIndex index = loadLibraryIndex(context);
+        List<String> projectNames = new ArrayList<>(index.videosByProject.keySet());
+        projectNames.sort(CutVideoLibrarySync::naturalCompare);
+
+        JSONArray projectsJson = new JSONArray();
+        for (String projectName : projectNames) {
+            JSONObject projectJson = new JSONObject();
+            projectJson.put("name", projectName);
+            JSONArray videosJson = new JSONArray();
+
+            List<SavedVideo> orderedVideos = new ArrayList<>(index.videosByProject.get(projectName));
+            orderedVideos.sort((left, right) -> naturalCompare(left.getName(), right.getName()));
+            for (SavedVideo video : orderedVideos) {
+                JSONObject videoJson = new JSONObject();
+                videoJson.put("name", video.getName());
+                videoJson.put("duration_ms", Math.max(0L, video.getDurationMs()));
+                videoJson.put("size_bytes", Math.max(0L, video.getSizeBytes()));
+                videoJson.put("date_added_seconds", Math.max(0L, video.getDateAddedSeconds()));
+
+                // Lecture locale du cache uniquement : aucune extraction ni aucun réseau ici.
+                List<String> cachedFrameUrls = VideoFrameSync.getCachedFrameUrls(
+                        context,
+                        projectName,
+                        video
+                );
+                videoJson.put("thumbnail_url", cachedFrameUrls.isEmpty() ? "" : cachedFrameUrls.get(0));
+                JSONArray frameUrlsJson = new JSONArray();
+                for (String frameUrl : cachedFrameUrls) frameUrlsJson.put(frameUrl);
+                videoJson.put("frame_urls", frameUrlsJson);
+                videoJson.put("transcript", "");
+
+                videosJson.put(videoJson);
+            }
+            projectJson.put("videos", videosJson);
+            projectsJson.put(projectJson);
+        }
+        root.put("projects", projectsJson);
+
+        JSONArray schedulesJson = new JSONArray();
+        for (PublicationSchedule schedule : PublicationScheduleRepository.listAll(context)) {
+            JSONObject scheduleJson = new JSONObject();
+            scheduleJson.put("id", schedule.getId());
+            scheduleJson.put("project", index.projectByVideoUri.getOrDefault(
+                    schedule.getVideoUri(),
+                    inferProjectName(schedule.getVideoName())
+            ));
+            scheduleJson.put("video_name", schedule.getVideoName());
+            scheduleJson.put("platform", schedule.getPlatformKey());
+            scheduleJson.put("scheduled_at_millis", Math.max(0L, schedule.getScheduledAtMillis()));
+            scheduleJson.put("title", schedule.getTitle());
+            scheduleJson.put("description", schedule.getDescription());
+            scheduleJson.put("hashtags", schedule.getHashtags());
+            scheduleJson.put("visibility", schedule.getVisibility());
+            scheduleJson.put("account", PublicationAccountRepository.get(context, schedule.getId()));
+            scheduleJson.put("published", schedule.isPublished());
+            schedulesJson.put(scheduleJson);
+        }
+        root.put("schedules", schedulesJson);
+        return root;
+    }
+
+    private static LibraryIndex loadLibraryIndex(Context context) throws Exception {
         List<SavedVideoFolder> folders = MediaStoreRepository.loadSavedVideoFolders(context);
         VideoCollectionRepository.reconcile(context, folders);
 
@@ -204,9 +310,7 @@ public final class CutVideoLibrarySync {
             }
 
             String folderName = VideoFolderUtils.displayName(folder.getKey()).trim();
-            if (folderName.isEmpty()) {
-                folderName = "Dossier";
-            }
+            if (folderName.isEmpty()) folderName = "Dossier";
             String collectionName = collectionNameByFolderKey.getOrDefault(folder.getKey(), "").trim();
             String projectPath = collectionName.isEmpty()
                     ? folderName
@@ -218,72 +322,13 @@ public final class CutVideoLibrarySync {
                 projectByVideoUri.put(video.getUri().toString(), projectPath);
             }
         }
-
-        List<String> projectNames = new ArrayList<>(videosByProject.keySet());
-        projectNames.sort(CutVideoLibrarySync::naturalCompare);
-        JSONArray projectsJson = new JSONArray();
-        for (String projectName : projectNames) {
-            JSONObject projectJson = new JSONObject();
-            projectJson.put("name", projectName);
-            JSONArray videosJson = new JSONArray();
-
-            List<SavedVideo> orderedVideos = new ArrayList<>(videosByProject.get(projectName));
-            orderedVideos.sort((left, right) -> naturalCompare(left.getName(), right.getName()));
-            for (SavedVideo video : orderedVideos) {
-                JSONObject videoJson = new JSONObject();
-                videoJson.put("name", video.getName());
-                videoJson.put("duration_ms", Math.max(0L, video.getDurationMs()));
-                videoJson.put("size_bytes", Math.max(0L, video.getSizeBytes()));
-                videoJson.put("date_added_seconds", Math.max(0L, video.getDateAddedSeconds()));
-
-                List<String> frameUrls = VideoFrameSync.ensureFramesUploaded(
-                        context,
-                        bearerToken,
-                        projectName,
-                        video
-                );
-                videoJson.put("thumbnail_url", frameUrls.isEmpty() ? "" : frameUrls.get(0));
-                JSONArray frameUrlsJson = new JSONArray();
-                for (String frameUrl : frameUrls) frameUrlsJson.put(frameUrl);
-                videoJson.put("frame_urls", frameUrlsJson);
-                videoJson.put("transcript", "");
-
-                videosJson.put(videoJson);
-            }
-            projectJson.put("videos", videosJson);
-            projectsJson.put(projectJson);
-        }
-        root.put("projects", projectsJson);
-
-        JSONArray schedulesJson = new JSONArray();
-        for (PublicationSchedule schedule : PublicationScheduleRepository.listAll(context)) {
-            JSONObject scheduleJson = new JSONObject();
-            scheduleJson.put("id", schedule.getId());
-            scheduleJson.put("project", projectByVideoUri.getOrDefault(
-                    schedule.getVideoUri(),
-                    inferProjectName(schedule.getVideoName())
-            ));
-            scheduleJson.put("video_name", schedule.getVideoName());
-            scheduleJson.put("platform", schedule.getPlatformKey());
-            scheduleJson.put("scheduled_at_millis", Math.max(0L, schedule.getScheduledAtMillis()));
-            scheduleJson.put("title", schedule.getTitle());
-            scheduleJson.put("description", schedule.getDescription());
-            scheduleJson.put("hashtags", schedule.getHashtags());
-            scheduleJson.put("visibility", schedule.getVisibility());
-            scheduleJson.put("account", PublicationAccountRepository.get(context, schedule.getId()));
-            scheduleJson.put("published", schedule.isPublished());
-            schedulesJson.put(scheduleJson);
-        }
-        root.put("schedules", schedulesJson);
-        return root;
+        return new LibraryIndex(videosByProject, projectByVideoUri);
     }
 
     private static String inferProjectName(String fileName) {
         String name = fileName == null ? "" : fileName.trim().replaceFirst("(?i)\\.mp4$", "");
         name = name.replaceFirst("(?i)[ _-]+(?:part(?:ie)?|clip|video)?[ _-]*\\d+$", "").trim();
-        if (name.isEmpty()) {
-            return "Autres";
-        }
+        if (name.isEmpty()) return "Autres";
         return name.replace('_', ' ').replaceAll("\\s+", " ").trim();
     }
 
@@ -318,5 +363,18 @@ public final class CutVideoLibrarySync {
             rightIndex++;
         }
         return Integer.compare(left.length(), right.length());
+    }
+
+    private static final class LibraryIndex {
+        final Map<String, List<SavedVideo>> videosByProject;
+        final Map<String, String> projectByVideoUri;
+
+        LibraryIndex(
+                Map<String, List<SavedVideo>> videosByProject,
+                Map<String, String> projectByVideoUri
+        ) {
+            this.videosByProject = videosByProject;
+            this.projectByVideoUri = projectByVideoUri;
+        }
     }
 }
