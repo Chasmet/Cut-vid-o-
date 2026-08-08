@@ -39,6 +39,28 @@ public final class VideoFrameSync {
     private VideoFrameSync() {
     }
 
+    /**
+     * Retourne uniquement les URLs déjà en cache. Cette méthode ne lit aucune image de la vidéo
+     * et ne fait aucun appel réseau : elle peut donc être utilisée pendant la synchro rapide.
+     */
+    public static List<String> getCachedFrameUrls(
+            Context context,
+            String projectName,
+            SavedVideo video
+    ) {
+        if (context == null || video == null) return Collections.emptyList();
+        String signature = signature(projectName, video);
+        String cacheKey = "frames_" + sha256(signature);
+        SharedPreferences preferences = context.getApplicationContext()
+                .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        CachedFrames cached = readCache(preferences, cacheKey, signature);
+        if (cached == null || cached.urls.isEmpty()) return Collections.emptyList();
+        if (System.currentTimeMillis() - cached.savedAtMillis >= CACHE_MAX_AGE_MS) {
+            return Collections.emptyList();
+        }
+        return new ArrayList<>(cached.urls);
+    }
+
     public static List<String> ensureFramesUploaded(
             Context context,
             String bearerToken,
@@ -77,7 +99,7 @@ public final class VideoFrameSync {
                 return urls;
             }
         } catch (Exception ignored) {
-            // La synchro principale doit rester fonctionnelle même si l'extraction d'images échoue.
+            // L'analyse visuelle est secondaire : elle ne doit jamais bloquer la bibliothèque.
         }
         return cached == null ? Collections.emptyList() : cached.urls;
     }
