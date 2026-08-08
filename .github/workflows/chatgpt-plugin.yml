@@ -45,6 +45,7 @@ jobs:
           npx tsx src/patch_remote_schedule.ts
           npx tsx src/patch_gpt_actions.ts
           npx tsx src/patch_metadata_fit.ts
+          npx tsx src/patch_connector_real_schedule.ts
 
       - name: Vérifier le serveur MCP généré
         run: npm run typecheck
