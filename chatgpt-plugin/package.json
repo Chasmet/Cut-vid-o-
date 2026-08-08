@@ -1,12 +1,12 @@
 {
   "name": "cut-video-chatgpt-plugin",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "private": true,
   "type": "module",
-  "description": "Compagnon Cut Vidéo : MCP web, synchronisation Android, analyse visuelle, programmation réelle confirmée par l'APK et pont GPT Actions sécurisé pour l'utilisation mobile.",
+  "description": "Compagnon Cut Vidéo : MCP web, synchronisation Android, analyse visuelle, programmation réelle confirmée par l'APK, pont GPT Actions mobile et ajustement automatique des métadonnées à 100 caractères.",
   "scripts": {
     "dev": "tsx watch src/server_auto.ts",
-    "start": "tsx src/patch_server.ts && tsx src/patch_server_v2.ts && tsx src/patch_media.ts && tsx src/patch_sync_v171.ts && tsx src/patch_connector_stable.ts && tsx src/patch_connector_escape_fix.ts && tsx src/patch_pairing_recovery.ts && tsx src/patch_remote_schedule.ts && tsx src/patch_gpt_actions.ts && (tsx src/state_watch.ts & exec tsx src/server_auto.ts)",
+    "start": "tsx src/patch_server.ts && tsx src/patch_server_v2.ts && tsx src/patch_media.ts && tsx src/patch_sync_v171.ts && tsx src/patch_connector_stable.ts && tsx src/patch_connector_escape_fix.ts && tsx src/patch_pairing_recovery.ts && tsx src/patch_remote_schedule.ts && tsx src/patch_gpt_actions.ts && tsx src/patch_metadata_fit.ts && (tsx src/state_watch.ts & exec tsx src/server_auto.ts)",
     "typecheck": "tsc --noEmit"
   },
   "engines": {
