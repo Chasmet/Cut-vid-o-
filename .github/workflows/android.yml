@@ -49,14 +49,14 @@ jobs:
       - name: Préparer le fichier à télécharger
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.7.0.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.7.1.apk
           cd dist
-          sha256sum Cut-Video-v1.7.0.apk > Cut-Video-v1.7.0.apk.sha256
+          sha256sum Cut-Video-v1.7.1.apk > Cut-Video-v1.7.1.apk.sha256
 
       - name: Publier l'APK
         uses: actions/upload-artifact@v4
         with:
-          name: Cut-Video-APK-v1.7.0
+          name: Cut-Video-APK-v1.7.1
           path: dist/
           if-no-files-found: error
           retention-days: 90
@@ -66,15 +66,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view v1.7.0 > /dev/null 2>&1; then
-            gh release upload v1.7.0 \
-              dist/Cut-Video-v1.7.0.apk \
-              dist/Cut-Video-v1.7.0.apk.sha256 \
+          if gh release view v1.7.1 > /dev/null 2>&1; then
+            gh release upload v1.7.1 \
+              dist/Cut-Video-v1.7.1.apk \
+              dist/Cut-Video-v1.7.1.apk.sha256 \
               --clobber
           else
-            gh release create v1.7.0 \
-              dist/Cut-Video-v1.7.0.apk \
-              dist/Cut-Video-v1.7.0.apk.sha256 \
-              --title "Cut Vidéo v1.7.0" \
-              --notes "Ajoute l'analyse visuelle ChatGPT : Cut Vidéo extrait trois images représentatives par vidéo, les compresse et les synchronise sans envoyer les fichiers vidéo complets. Le serveur MCP peut ensuite restituer ces images à ChatGPT pour générer des métadonnées réellement adaptées au contenu."
+            gh release create v1.7.1 \
+              dist/Cut-Video-v1.7.1.apk \
+              dist/Cut-Video-v1.7.1.apk.sha256 \
+              --title "Cut Vidéo v1.7.1" \
+              --notes "Corrige la synchronisation ChatGPT : la bibliothèque, les dossiers et les vrais noms de vidéos sont envoyés immédiatement. L'analyse visuelle des 3 frames par vidéo s'effectue ensuite séparément en arrière-plan et ne peut plus bloquer la synchronisation principale. Le serveur MCP 2.1.1 expose aussi la bibliothèque via l'un des 3 outils historiques pour rester compatible avec les connexions ChatGPT qui gardent un ancien schéma."
           fi
