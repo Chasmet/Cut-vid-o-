@@ -1,12 +1,12 @@
 {
   "name": "cut-video-chatgpt-plugin",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Compagnon MCP pour synchroniser toute la bibliothèque Cut Vidéo, choisir automatiquement le projet actif et préparer les métadonnées et programmations sans envoyer les fichiers vidéo.",
+  "description": "Compagnon MCP Cut Vidéo autonome : lecture de toute la bibliothèque, récupération automatique après un nom de fichier invalide, lots multi-dossiers, métadonnées et programmations sans envoyer les vidéos.",
   "scripts": {
     "dev": "tsx watch src/server_auto.ts",
-    "start": "tsx src/patch_server.ts && (tsx src/state_watch.ts & exec tsx src/server_auto.ts)",
+    "start": "tsx src/patch_server.ts && tsx src/patch_server_v2.ts && (tsx src/state_watch.ts & exec tsx src/server_auto.ts)",
     "typecheck": "tsc --noEmit"
   },
   "engines": {
