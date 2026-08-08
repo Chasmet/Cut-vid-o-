@@ -1,0 +1,43 @@
+name: Vérifier le plugin ChatGPT
+
+on:
+  pull_request:
+    paths:
+      - "chatgpt-plugin/**"
+      - ".github/workflows/chatgpt-plugin.yml"
+  push:
+    branches:
+      - main
+      - agent/chatgpt-cut-video-plugin
+    paths:
+      - "chatgpt-plugin/**"
+      - ".github/workflows/chatgpt-plugin.yml"
+
+jobs:
+  typecheck:
+    name: TypeScript MCP
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chatgpt-plugin
+
+    steps:
+      - name: Récupérer le projet
+        uses: actions/checkout@v4
+
+      - name: Installer Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Installer les dépendances
+        run: npm install
+
+      - name: Appliquer tous les patchs de démarrage
+        run: |
+          npx tsx src/patch_server.ts
+          npx tsx src/patch_server_v2.ts
+          npx tsx src/patch_media.ts
+
+      - name: Vérifier le serveur MCP généré
+        run: npm run typecheck

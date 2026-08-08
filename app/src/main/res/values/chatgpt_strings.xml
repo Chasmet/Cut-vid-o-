@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chatgpt_assistant_title">Assistant ChatGPT</string>
+    <string name="chatgpt_assistant_subtitle">Prépare la demande à partir du fichier, du compte, du réseau et de l’heure de publication.</string>
+    <string name="chatgpt_assistant_home">ASSISTANT CHATGPT</string>
+    <string name="chatgpt_assistant_home_subtitle">Métadonnées ≤ 100 caractères, programmation et fiche</string>
+    <string name="chatgpt_video_name_hint">Nom du fichier vidéo (ex. Albator_01.mp4)</string>
+    <string name="chatgpt_subject_hint">Sujet de la vidéo (facultatif)</string>
+    <string name="chatgpt_account_label">Compte</string>
+    <string name="chatgpt_platform_label">Réseau</string>
+    <string name="chatgpt_rules_hint">Règles automatiques : contenu lié au fichier • 100 caractères maximum au total • 5 hashtags maximum • fiche Cut Vidéo.</string>
+    <string name="open_chatgpt">OUVRIR CHATGPT</string>
+    <string name="copy_chatgpt_request">COPIER LA DEMANDE</string>
+    <string name="chatgpt_file_required">Entre le nom du fichier vidéo.</string>
+    <string name="chatgpt_prompt_copied">Demande ChatGPT copiée.</string>
+    <string name="chatgpt_prompt_ready">Demande copiée. Envoie-la dans ChatGPT pour utiliser le plugin Cut Vidéo.</string>
+</resources>

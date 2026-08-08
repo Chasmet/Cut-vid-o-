@@ -2,7 +2,9 @@ name: Construire l'APK Android
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - agent/chatgpt-cut-video-plugin
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -47,14 +49,14 @@ jobs:
       - name: Préparer le fichier à télécharger
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.6.0.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/Cut-Video-v1.7.0.apk
           cd dist
-          sha256sum Cut-Video-v1.6.0.apk > Cut-Video-v1.6.0.apk.sha256
+          sha256sum Cut-Video-v1.7.0.apk > Cut-Video-v1.7.0.apk.sha256
 
       - name: Publier l'APK
         uses: actions/upload-artifact@v4
         with:
-          name: Cut-Video-APK
+          name: Cut-Video-APK-v1.7.0
           path: dist/
           if-no-files-found: error
           retention-days: 90
@@ -64,16 +66,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view v1.6.0 > /dev/null 2>&1; then
-            gh release upload v1.6.0 \
-              dist/Cut-Video-v1.6.0.apk \
-              dist/Cut-Video-v1.6.0.apk.sha256 \
+          if gh release view v1.7.0 > /dev/null 2>&1; then
+            gh release upload v1.7.0 \
+              dist/Cut-Video-v1.7.0.apk \
+              dist/Cut-Video-v1.7.0.apk.sha256 \
               --clobber
           else
-            gh release create v1.6.0 \
-              dist/Cut-Video-v1.6.0.apk \
-              dist/Cut-Video-v1.6.0.apk.sha256 \
-              --title "Cut Vidéo v1.6.0" \
-              --notes "Chaque classement et chaque dossier de découpe possède maintenant son bloc-notes permanent et indépendant, avec insertion rapide de la date et de l’heure. Mes vidéos gagne aussi une disposition liste ou grille, trois tailles d’éléments, quatre tris et des menus d’actions plus lisibles, tout en conservant exactement les couleurs de Cut Vidéo. Les notes, les réglages d’affichage, la planification et les métadonnées restent enregistrés localement sur le téléphone." \
-              --latest
+            gh release create v1.7.0 \
+              dist/Cut-Video-v1.7.0.apk \
+              dist/Cut-Video-v1.7.0.apk.sha256 \
+              --title "Cut Vidéo v1.7.0" \
+              --notes "Ajoute l'analyse visuelle ChatGPT : Cut Vidéo extrait trois images représentatives par vidéo, les compresse et les synchronise sans envoyer les fichiers vidéo complets. Le serveur MCP peut ensuite restituer ces images à ChatGPT pour générer des métadonnées réellement adaptées au contenu."
           fi
