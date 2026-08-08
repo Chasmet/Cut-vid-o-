@@ -23,7 +23,10 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Synchronise uniquement le catalogue et les programmations. Les vidéos ne sont jamais envoyées. */
+/**
+ * Synchronise le catalogue, les programmations et quelques images représentatives.
+ * Les fichiers vidéo complets ne sont jamais envoyés.
+ */
 public final class CutVideoLibrarySync {
 
     private static final String BASE_URL = "https://cut-video-chatgpt-mcp.onrender.com";
@@ -58,7 +61,7 @@ public final class CutVideoLibrarySync {
 
                 JSONObject snapshot;
                 try {
-                    snapshot = buildSnapshot(context);
+                    snapshot = buildSnapshot(context, token);
                 } catch (Exception error) {
                     showStatus(context, "Synchro bloquée pendant lecture bibliothèque: " + shortMessage(error));
                     return;
@@ -66,19 +69,29 @@ public final class CutVideoLibrarySync {
 
                 int projectCount = snapshot.optJSONArray("projects") == null ? 0 : snapshot.optJSONArray("projects").length();
                 int videoCount = 0;
+                int videoWithFramesCount = 0;
                 JSONArray projects = snapshot.optJSONArray("projects");
                 if (projects != null) {
                     for (int i = 0; i < projects.length(); i++) {
                         JSONObject project = projects.optJSONObject(i);
-                        if (project != null && project.optJSONArray("videos") != null) {
-                            videoCount += project.optJSONArray("videos").length();
+                        JSONArray videos = project == null ? null : project.optJSONArray("videos");
+                        if (videos == null) continue;
+                        videoCount += videos.length();
+                        for (int v = 0; v < videos.length(); v++) {
+                            JSONObject video = videos.optJSONObject(v);
+                            JSONArray frameUrls = video == null ? null : video.optJSONArray("frame_urls");
+                            if (frameUrls != null && frameUrls.length() > 0) videoWithFramesCount++;
                         }
                     }
                 }
 
                 lastSyncCode = postJson(BASE_URL + "/api/library/sync", snapshot, token);
                 if (lastSyncCode >= 200 && lastSyncCode < 300) {
-                    showStatus(context, "Synchro ChatGPT OK — " + projectCount + " dossiers / " + videoCount + " vidéos");
+                    showStatus(
+                            context,
+                            "Synchro ChatGPT OK — " + projectCount + " dossiers / " + videoCount
+                                    + " vidéos / " + videoWithFramesCount + " analysables"
+                    );
                     return;
                 }
                 lastError = "SYNC HTTP " + lastSyncCode;
@@ -162,7 +175,7 @@ public final class CutVideoLibrarySync {
         }
     }
 
-    private static JSONObject buildSnapshot(Context context) throws Exception {
+    private static JSONObject buildSnapshot(Context context, String bearerToken) throws Exception {
         JSONObject root = new JSONObject();
         root.put("synced_at_millis", System.currentTimeMillis());
         root.put("app_version", BuildConfig.VERSION_NAME);
@@ -222,6 +235,19 @@ public final class CutVideoLibrarySync {
                 videoJson.put("duration_ms", Math.max(0L, video.getDurationMs()));
                 videoJson.put("size_bytes", Math.max(0L, video.getSizeBytes()));
                 videoJson.put("date_added_seconds", Math.max(0L, video.getDateAddedSeconds()));
+
+                List<String> frameUrls = VideoFrameSync.ensureFramesUploaded(
+                        context,
+                        bearerToken,
+                        projectName,
+                        video
+                );
+                videoJson.put("thumbnail_url", frameUrls.isEmpty() ? "" : frameUrls.get(0));
+                JSONArray frameUrlsJson = new JSONArray();
+                for (String frameUrl : frameUrls) frameUrlsJson.put(frameUrl);
+                videoJson.put("frame_urls", frameUrlsJson);
+                videoJson.put("transcript", "");
+
                 videosJson.put(videoJson);
             }
             projectJson.put("videos", videosJson);
