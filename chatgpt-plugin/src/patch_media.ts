@@ -211,6 +211,10 @@ app.post("/api/library/sync", async (req, res) => {`,
   );
 }
 
+source = source.replaceAll(
+  'version: "2.0.0"',
+  'version: "2.1.0"',
+);
 source = source.replace(
   'automatic_project_selection: true,\n  autopilot: true,',
   'automatic_project_selection: true,\n  frame_analysis: true,\n  frame_count_per_video: 3,\n  autopilot: true,',
