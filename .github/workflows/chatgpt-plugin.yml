@@ -41,6 +41,7 @@ jobs:
           npx tsx src/patch_sync_v171.ts
           npx tsx src/patch_connector_stable.ts
           npx tsx src/patch_connector_escape_fix.ts
+          npx tsx src/patch_pairing_recovery.ts
 
       - name: Vérifier le serveur MCP généré
         run: npm run typecheck
