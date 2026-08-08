@@ -125,10 +125,6 @@ source = source.replace(
   'version: "2.0.0",\n  status: "ok",\n  autopilot: true,\n  multi_project_packs: true,\n  self_healing_names: true,',
 );
 source = source.replace(
-  'automatic_project_selection: true,\n  accounts:',
-  'automatic_project_selection: true,\n  autopilot: true,\n  multi_project_packs: true,\n  self_healing_names: true,\n  accounts:',
-);
-source = source.replace(
   'Cut Vidéo MCP v1.6.0 listening on port',
   'Cut Vidéo MCP v2.0.0 listening on port',
 );
