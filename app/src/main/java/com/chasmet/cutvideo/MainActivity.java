@@ -58,6 +58,7 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        CutVideoCommandListenerService.stopListening(this);
         CutVideoLibrarySync.syncAsync(this);
         remotePollHandler.removeCallbacks(remotePoll);
         remotePollHandler.postDelayed(remotePoll, 4_000L);
@@ -66,6 +67,7 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         remotePollHandler.removeCallbacks(remotePoll);
+        CutVideoCommandListenerService.startListening(this);
         super.onPause();
     }
 
