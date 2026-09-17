@@ -70,7 +70,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:text="Les nouvelles versions sont récupérées depuis la dernière Release GitHub. L'installation remplace l'application sans effacer tes vidéos, dossiers, métadonnées ni programmations."
+                android:text="Cut Vidéo vérifie automatiquement les nouvelles Releases GitHub. Si une version plus récente existe, l'application propose de la télécharger et ouvre directement l'installation Android."
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Lors d'une mise à jour Android normale, les vidéos, dossiers, métadonnées et programmations restent conservés."
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
 
