@@ -71,7 +71,7 @@ jobs:
           cd dist
           sha256sum "Cut-Video-v${APP_VERSION}.apk" > "Cut-Video-v${APP_VERSION}.apk.sha256"
 
-      - name: Publier l'APK
+      - name: Publier l'APK dans les Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Cut-Video-APK-v${{ steps.app_version.outputs.version }}
@@ -79,20 +79,44 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Publier la version téléchargeable
+      - name: Publier la Release GitHub
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
           APP_VERSION: ${{ steps.app_version.outputs.version }}
+        shell: bash
         run: |
+          set -euo pipefail
           TAG="v${APP_VERSION}"
           APK="dist/Cut-Video-v${APP_VERSION}.apk"
           SHA="dist/Cut-Video-v${APP_VERSION}.apk.sha256"
-          NOTES="Cut Vidéo ${APP_VERSION} — menu Réglages et mise à jour APK intégrée."
-          if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" "$APK" "$SHA" --clobber
+          NOTES="Cut Vidéo ${APP_VERSION} — mise à jour interne reconstruite : vérification automatique, reprise après autorisation Android, téléchargement contrôlé et installation depuis l'application."
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --target "$GITHUB_SHA" \
+              --title "Cut Vidéo v${APP_VERSION}" \
+              --notes "$NOTES"
           else
-            gh release create "$TAG" "$APK" "$SHA" \
+            gh release edit "$TAG" \
               --title "Cut Vidéo v${APP_VERSION}" \
               --notes "$NOTES"
           fi
+
+          upload_with_retry() {
+            local file="$1"
+            local attempt
+            for attempt in 1 2 3 4 5; do
+              if gh release upload "$TAG" "$file" --clobber; then
+                return 0
+              fi
+              if [ "$attempt" -eq 5 ]; then
+                echo "Échec définitif de l'upload de $file" >&2
+                return 1
+              fi
+              sleep $((attempt * 10))
+            done
+          }
+
+          upload_with_retry "$APK"
+          upload_with_retry "$SHA"
