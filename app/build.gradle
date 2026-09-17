@@ -10,9 +10,8 @@ android {
         applicationId = 'com.chasmet.cutvideo'
         minSdk = 29
         targetSdk = 36
-        versionCode = 18
-        versionName = '1.7.3'
-
+        versionCode = 19
+        versionName = '1.8.0'
         testInstrumentationRunner = 'androidx.test.runner.AndroidJUnitRunner'
     }
 
@@ -42,11 +41,9 @@ dependencies {
     implementation 'androidx.activity:activity:1.10.1'
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
-
     implementation 'androidx.media3:media3-common:1.10.1'
     implementation 'androidx.media3:media3-exoplayer:1.10.1'
     implementation 'androidx.media3:media3-ui:1.10.1'
     implementation 'androidx.media3:media3-transformer:1.10.1'
-
     testImplementation 'junit:junit:4.13.2'
 }
