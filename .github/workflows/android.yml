@@ -44,7 +44,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Préparer le SDK Android
+      - name: Installer Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Installer plateforme Android
         shell: bash
         run: |
           yes | sdkmanager --licenses >/dev/null || true
