@@ -39,16 +39,16 @@ jobs:
           echo "APK version: $VERSION_NAME"
 
       - name: Installer Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Installer le SDK Android
-        uses: android-actions/setup-android@v3
-
-      - name: Installer Android 16
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Préparer le SDK Android
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Installer Gradle 9.4.1
         uses: gradle/actions/setup-gradle@v4
@@ -84,7 +84,7 @@ jobs:
           TAG="v${APP_VERSION}"
           APK="dist/Cut-Video-v${APP_VERSION}.apk"
           SHA="dist/Cut-Video-v${APP_VERSION}.apk.sha256"
-          NOTES="Cut Vidéo ${APP_VERSION}. ChatGPT peut maintenant envoyer de vraies commandes de programmation à l'application. L'APK les récupère automatiquement quand elle est ouverte, écrit réellement les programmations et rappels Android, puis confirme le résultat au serveur. Tant que l'APK n'a pas confirmé l'écriture, le connecteur indique EN ATTENTE APK au lieu de PROGRAMMÉ."
+          NOTES="Cut Vidéo ${APP_VERSION} — menu Réglages et mise à jour APK intégrée."
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" "$APK" "$SHA" --clobber
           else
