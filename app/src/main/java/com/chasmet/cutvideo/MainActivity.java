@@ -47,12 +47,9 @@ public final class MainActivity extends AppCompatActivity {
         );
 
         binding.importVideoCard.setOnClickListener(view -> openVideoPicker());
-        binding.savedVideosCard.setOnClickListener(view -> startActivity(
-                new Intent(this, SavedVideosActivity.class)
-        ));
-        binding.chatgptAssistantCard.setOnClickListener(view -> startActivity(
-                new Intent(this, ChatGptAssistantActivity.class)
-        ));
+        binding.savedVideosCard.setOnClickListener(view -> startActivity(new Intent(this, SavedVideosActivity.class)));
+        binding.chatgptAssistantCard.setOnClickListener(view -> startActivity(new Intent(this, ChatGptAssistantActivity.class)));
+        binding.settingsCard.setOnClickListener(view -> startActivity(new Intent(this, SettingsActivity.class)));
     }
 
     @Override
@@ -90,16 +87,10 @@ public final class MainActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.picker_cancelled, Toast.LENGTH_SHORT).show();
             return;
         }
-
         try {
-            getContentResolver().takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-            );
+            getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
         } catch (SecurityException ignored) {
-            // Le sélecteur moderne maintient lui-même l'accès pendant la session.
         }
-
         Intent editor = new Intent(this, EditorActivity.class);
         editor.putExtra(EditorActivity.EXTRA_VIDEO_URI, uri.toString());
         editor.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
