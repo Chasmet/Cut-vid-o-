@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:allowBackup="false"
@@ -18,82 +19,55 @@
         android:theme="@style/Theme.CutVideo"
         android:usesCleartextTraffic="false">
 
-        <activity
-            android:name=".CutVideoImportActivity"
-            android:exported="true"
-            android:launchMode="singleTop">
+        <activity android:name=".SettingsActivity" android:exported="false" />
+
+        <activity android:name=".CutVideoImportActivity" android:exported="true" android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="cutvideo"
-                    android:host="import" />
-                <data
-                    android:scheme="cutvideo"
-                    android:host="import-pack" />
+                <data android:scheme="cutvideo" android:host="import" />
+                <data android:scheme="cutvideo" android:host="import-pack" />
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".ChatGptAssistantActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ChatGptAssistantActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".VideoScheduleActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".SavedVideosActivity" android:exported="false" />
+        <activity android:name=".EditorActivity" android:exported="false" />
 
-        <activity
-            android:name=".VideoScheduleActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".SavedVideosActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".EditorActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
+        <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <receiver
-            android:name=".PublicationReminderReceiver"
-            android:exported="false" />
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
 
-        <receiver
-            android:name=".PublicationBootReceiver"
-            android:enabled="true"
-            android:exported="false">
+        <receiver android:name=".PublicationReminderReceiver" android:exported="false" />
+        <receiver android:name=".PublicationBootReceiver" android:enabled="true" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 
-        <service
-            android:name=".CutVideoCommandListenerService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync"
-            android:stopWithTask="false" />
+        <service android:name=".CutVideoCommandListenerService" android:exported="false" android:foregroundServiceType="dataSync" android:stopWithTask="false" />
 
         <service
             android:name="com.google.android.gms.metadata.ModuleDependencies"
             android:enabled="false"
             android:exported="false"
             tools:ignore="MissingClass">
-            <intent-filter>
-                <action android:name="com.google.android.gms.metadata.MODULE_DEPENDENCIES" />
-            </intent-filter>
-            <meta-data
-                android:name="photopicker_activity:0:required"
-                android:value="" />
+            <intent-filter><action android:name="com.google.android.gms.metadata.MODULE_DEPENDENCIES" /></intent-filter>
+            <meta-data android:name="photopicker_activity:0:required" android:value="" />
         </service>
     </application>
-
 </manifest>
