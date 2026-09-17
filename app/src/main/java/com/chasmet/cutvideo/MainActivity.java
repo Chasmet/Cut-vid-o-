@@ -55,6 +55,10 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+
+        AppUpdateManager.resumePendingUpdate(this);
+        AppUpdateManager.checkAutomatically(this);
+
         CutVideoCommandListenerService.stopListening(this);
         CutVideoLibrarySync.syncAsync(this);
         remotePollHandler.removeCallbacks(remotePoll);
