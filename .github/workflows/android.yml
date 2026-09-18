@@ -44,7 +44,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Préparer Android SDK préinstallé
+      - name: Préparer Android SDK
         shell: bash
         run: |
           echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
@@ -59,28 +59,88 @@ jobs:
         with:
           gradle-version: '9.4.1'
 
-      - name: Tester, analyser et compiler
+      - name: Vérifier la signature stable
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.CUTVIDEO_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.CUTVIDEO_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.CUTVIDEO_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.CUTVIDEO_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Signature stable absente : aucun APK de release ne sera publié."
+          fi
+
+      - name: Préparer la clé de signature
+        if: steps.signing.outputs.ready == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.CUTVIDEO_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.CUTVIDEO_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.CUTVIDEO_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.CUTVIDEO_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYSTORE_PATH="$RUNNER_TEMP/cut-video-release.keystore"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          echo "::add-mask::$KEYSTORE_PASSWORD"
+          echo "::add-mask::$KEY_PASSWORD"
+          echo "CUTVIDEO_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "CUTVIDEO_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "CUTVIDEO_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "CUTVIDEO_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Tester et compiler DEBUG
         run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
 
-      - name: Préparer le fichier à télécharger
+      - name: Compiler RELEASE signée
+        if: steps.signing.outputs.ready == 'true'
+        run: gradle --no-daemon assembleRelease
+
+      - name: Publier l'APK DEBUG dans les Artifacts
         env:
           APP_VERSION: ${{ steps.app_version.outputs.version }}
+        shell: bash
         run: |
-          mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk "dist/Cut-Video-v${APP_VERSION}.apk"
-          cd dist
-          sha256sum "Cut-Video-v${APP_VERSION}.apk" > "Cut-Video-v${APP_VERSION}.apk.sha256"
+          mkdir -p dist-debug
+          cp app/build/outputs/apk/debug/app-debug.apk "dist-debug/Cut-Video-DEBUG-v${APP_VERSION}.apk"
+          sha256sum "dist-debug/Cut-Video-DEBUG-v${APP_VERSION}.apk" > "dist-debug/Cut-Video-DEBUG-v${APP_VERSION}.apk.sha256"
 
-      - name: Publier l'APK dans les Artifacts
+      - name: Artifact DEBUG
         uses: actions/upload-artifact@v4
         with:
-          name: Cut-Video-APK-v${{ steps.app_version.outputs.version }}
+          name: Cut-Video-DEBUG-v${{ steps.app_version.outputs.version }}
+          path: dist-debug/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Préparer la RELEASE signée
+        if: steps.signing.outputs.ready == 'true'
+        env:
+          APP_VERSION: ${{ steps.app_version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/Cut-Video-v${APP_VERSION}.apk"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "dist/Cut-Video-v${APP_VERSION}.apk"
+          sha256sum "dist/Cut-Video-v${APP_VERSION}.apk" > "dist/Cut-Video-v${APP_VERSION}.apk.sha256"
+
+      - name: Artifact RELEASE signée
+        if: steps.signing.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cut-Video-RELEASE-v${{ steps.app_version.outputs.version }}
           path: dist/
           if-no-files-found: error
           retention-days: 90
 
       - name: Publier la Release GitHub
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.signing.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           APP_VERSION: ${{ steps.app_version.outputs.version }}
@@ -90,33 +150,13 @@ jobs:
           TAG="v${APP_VERSION}"
           APK="dist/Cut-Video-v${APP_VERSION}.apk"
           SHA="dist/Cut-Video-v${APP_VERSION}.apk.sha256"
-          NOTES="Cut Vidéo ${APP_VERSION} — mise à jour interne reconstruite : vérification automatique, reprise après autorisation Android, téléchargement contrôlé et installation depuis l'application."
+          NOTES="Cut Vidéo ${APP_VERSION} — APK RELEASE signé avec la clé permanente Cut Vidéo. Les prochaines mises à jour Android doivent conserver exactement cette même clé."
 
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" \
-              --target "$GITHUB_SHA" \
-              --title "Cut Vidéo v${APP_VERSION}" \
-              --notes "$NOTES"
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "Cut Vidéo v${APP_VERSION}" --notes "$NOTES"
           else
-            gh release edit "$TAG" \
-              --title "Cut Vidéo v${APP_VERSION}" \
-              --notes "$NOTES"
+            gh release edit "$TAG" --title "Cut Vidéo v${APP_VERSION}" --notes "$NOTES"
           fi
 
-          upload_with_retry() {
-            local file="$1"
-            local attempt
-            for attempt in 1 2 3 4 5; do
-              if gh release upload "$TAG" "$file" --clobber; then
-                return 0
-              fi
-              if [ "$attempt" -eq 5 ]; then
-                echo "Échec définitif de l'upload de $file" >&2
-                return 1
-              fi
-              sleep $((attempt * 10))
-            done
-          }
-
-          upload_with_retry "$APK"
-          upload_with_retry "$SHA"
+          gh release upload "$TAG" "$APK" --clobber
+          gh release upload "$TAG" "$SHA" --clobber
