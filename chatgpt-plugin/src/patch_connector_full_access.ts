@@ -3,7 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 const path = new URL("./server_auto.ts", import.meta.url);
 let source = await readFile(path, "utf8");
 
-const createServerMarker = "function createServer(): McpServer {";
+const createServerMarker = "function createFullServer(): McpServer {";
 const helperBlock = `
 const ADMIN_COMMAND_PREFIX = "cutvideo:admin-command:";
 const ADMIN_COMMAND_QUEUE_KEY = "cutvideo:admin-command-queue";
@@ -330,7 +330,7 @@ if (!source.includes('app.get("/api/device/admin-commands"')) {
 
 // Le mode stable à 3 outils était la principale restriction du connecteur.
 // On garde le code de compatibilité, mais le serveur actif redevient le serveur complet.
-source = source.replace("const server = createStableServer();", "const server = createServer();");
+source = source.replace("const server = createStableServer();", "const server = createFullServer();");
 source = source.replaceAll('version: "2.5.0"', 'version: "3.0.0"');
 source = source.replaceAll("Cut Vidéo MCP v2.5.0 listening on port", "Cut Vidéo MCP v3.0.0 listening on port");
 source = source.replace(
