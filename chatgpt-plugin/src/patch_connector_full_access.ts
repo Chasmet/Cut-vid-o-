@@ -204,7 +204,7 @@ const toolBlock = `
           destructive_actions: DESTRUCTIVE_ADMIN_ACTIONS,
           instruction: "Choisis l'action correspondante dans supported_actions. Pour une suppression utilise cutvideo_delete.",
         },
-        content: [{ type: "text", text: `Action "${action}" non reconnue. Utilise get_cutvideo_capabilities pour choisir l'action correcte.` }],
+        content: [{ type: "text", text: "Action \"" + action + "\" non reconnue. Utilise get_cutvideo_capabilities pour choisir une action correcte." }],
       };
     }
     const command = await enqueueAdminCommand(action, payload as Record<string, unknown>);
@@ -227,8 +227,8 @@ const toolBlock = `
       content: [{
         type: "text",
         text: result.status === "queued"
-          ? `Commande ${action} envoyée — EN ATTENTE APK.`
-          : `Commande ${action} — ${result.status.toUpperCase()} — ${result.ack?.message ?? ""}`,
+          ? "Commande " + action + " envoyée — EN ATTENTE APK."
+          : "Commande " + action + " — " + result.status.toUpperCase() + " — " + (result.ack?.message ?? ""),
       }],
     };
   });
@@ -256,8 +256,8 @@ const toolBlock = `
       content: [{
         type: "text",
         text: result.status === "queued"
-          ? `Suppression ${action} envoyée — EN ATTENTE APK.`
-          : `Suppression ${action} — ${result.status.toUpperCase()} — ${result.ack?.message ?? ""}`,
+          ? "Suppression " + action + " envoyée — EN ATTENTE APK."
+          : "Suppression " + action + " — " + result.status.toUpperCase() + " — " + (result.ack?.message ?? ""),
       }],
     };
   });
