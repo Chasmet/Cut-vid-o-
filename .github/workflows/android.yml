@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: android-${{ github.ref }}
@@ -59,49 +60,10 @@ jobs:
         with:
           gradle-version: '9.4.1'
 
-      - name: Vérifier la signature stable
-        id: signing
-        env:
-          KEYSTORE_BASE64: ${{ secrets.CUTVIDEO_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.CUTVIDEO_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.CUTVIDEO_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.CUTVIDEO_KEY_PASSWORD }}
-        shell: bash
-        run: |
-          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Signature stable absente : aucun APK de release ne sera publié."
-          fi
-
-      - name: Préparer la clé de signature
-        if: steps.signing.outputs.ready == 'true'
-        env:
-          KEYSTORE_BASE64: ${{ secrets.CUTVIDEO_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.CUTVIDEO_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.CUTVIDEO_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.CUTVIDEO_KEY_PASSWORD }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          KEYSTORE_PATH="$RUNNER_TEMP/cut-video-release.keystore"
-          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
-          echo "::add-mask::$KEYSTORE_PASSWORD"
-          echo "::add-mask::$KEY_PASSWORD"
-          echo "CUTVIDEO_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
-          echo "CUTVIDEO_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "CUTVIDEO_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "CUTVIDEO_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
-
       - name: Tester et compiler DEBUG
         run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
 
-      - name: Compiler RELEASE signée
-        if: steps.signing.outputs.ready == 'true'
-        run: gradle --no-daemon assembleRelease
-
-      - name: Publier l'APK DEBUG dans les Artifacts
+      - name: Artifact DEBUG
         env:
           APP_VERSION: ${{ steps.app_version.outputs.version }}
         shell: bash
@@ -110,7 +72,7 @@ jobs:
           cp app/build/outputs/apk/debug/app-debug.apk "dist-debug/Cut-Video-DEBUG-v${APP_VERSION}.apk"
           sha256sum "dist-debug/Cut-Video-DEBUG-v${APP_VERSION}.apk" > "dist-debug/Cut-Video-DEBUG-v${APP_VERSION}.apk.sha256"
 
-      - name: Artifact DEBUG
+      - name: Publier le DEBUG dans les Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Cut-Video-DEBUG-v${{ steps.app_version.outputs.version }}
@@ -118,20 +80,66 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Préparer la RELEASE signée
-        if: steps.signing.outputs.ready == 'true'
+      - name: Récupérer la clé de signature permanente via GitHub OIDC
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          OIDC_JSON=$(curl -fsSL             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=cut-video-signing")
+          OIDC_TOKEN=$(printf '%s' "$OIDC_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
+
+          SIGNING_JSON="$RUNNER_TEMP/cutvideo-signing.json"
+          curl -fsSL             -H "Authorization: Bearer $OIDC_TOKEN"             "https://cut-video-chatgpt-mcp.onrender.com/internal/android-signing-bundle"             -o "$SIGNING_JSON"
+
+          PRIVATE_KEY="$RUNNER_TEMP/cutvideo-release-key.pem"
+          CERTIFICATE="$RUNNER_TEMP/cutvideo-release-cert.pem"
+          python3 - "$SIGNING_JSON" "$PRIVATE_KEY" "$CERTIFICATE" <<'PY'
+          import json, os, pathlib, sys
+          data = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          private_key = data.get("private_key_pem", "")
+          certificate = data.get("certificate_pem", "")
+          if "PRIVATE KEY" not in private_key or "CERTIFICATE" not in certificate:
+              raise SystemExit("Matériel de signature invalide")
+          pathlib.Path(sys.argv[2]).write_text(private_key, encoding="utf-8")
+          pathlib.Path(sys.argv[3]).write_text(certificate, encoding="utf-8")
+          os.chmod(sys.argv[2], 0o600)
+          os.chmod(sys.argv[3], 0o600)
+          PY
+
+          rm -f "$SIGNING_JSON"
+          echo "CUTVIDEO_SIGNING_PRIVATE_KEY=$PRIVATE_KEY" >> "$GITHUB_ENV"
+          echo "CUTVIDEO_SIGNING_CERTIFICATE=$CERTIFICATE" >> "$GITHUB_ENV"
+
+      - name: Compiler RELEASE non signée
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: gradle --no-daemon assembleRelease
+
+      - name: Signer la RELEASE avec la clé permanente
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:
           APP_VERSION: ${{ steps.app_version.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
+          UNSIGNED_APK=$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*-unsigned.apk' -print -quit)
+          if [ -z "$UNSIGNED_APK" ]; then
+            echo "APK release non signé introuvable" >&2
+            exit 1
+          fi
+
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk "dist/Cut-Video-v${APP_VERSION}.apk"
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "dist/Cut-Video-v${APP_VERSION}.apk"
-          sha256sum "dist/Cut-Video-v${APP_VERSION}.apk" > "dist/Cut-Video-v${APP_VERSION}.apk.sha256"
+          ALIGNED_APK="$RUNNER_TEMP/cut-video-aligned.apk"
+          FINAL_APK="dist/Cut-Video-v${APP_VERSION}.apk"
+
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -p -f 4 "$UNSIGNED_APK" "$ALIGNED_APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign             --key "$CUTVIDEO_SIGNING_PRIVATE_KEY"             --cert "$CUTVIDEO_SIGNING_CERTIFICATE"             --out "$FINAL_APK"             "$ALIGNED_APK"
+
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$FINAL_APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$FINAL_APK"             | sed -n 's/^Signer #1 certificate SHA-256 digest: //p'             > dist/Cut-Video-signing-cert-sha256.txt
+          sha256sum "$FINAL_APK" > "dist/Cut-Video-v${APP_VERSION}.apk.sha256"
 
       - name: Artifact RELEASE signée
-        if: steps.signing.outputs.ready == 'true'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: Cut-Video-RELEASE-v${{ steps.app_version.outputs.version }}
@@ -140,7 +148,7 @@ jobs:
           retention-days: 90
 
       - name: Publier la Release GitHub
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.signing.outputs.ready == 'true'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
           APP_VERSION: ${{ steps.app_version.outputs.version }}
@@ -150,7 +158,8 @@ jobs:
           TAG="v${APP_VERSION}"
           APK="dist/Cut-Video-v${APP_VERSION}.apk"
           SHA="dist/Cut-Video-v${APP_VERSION}.apk.sha256"
-          NOTES="Cut Vidéo ${APP_VERSION} — APK RELEASE signé avec la clé permanente Cut Vidéo. Les prochaines mises à jour Android doivent conserver exactement cette même clé."
+          CERT="dist/Cut-Video-signing-cert-sha256.txt"
+          NOTES="Cut Vidéo ${APP_VERSION} — APK RELEASE signé avec la clé permanente Cut Vidéo conservée hors du dépôt. Cette même identité de signature sera réutilisée pour toutes les prochaines mises à jour."
 
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" --target "$GITHUB_SHA" --title "Cut Vidéo v${APP_VERSION}" --notes "$NOTES"
@@ -160,3 +169,4 @@ jobs:
 
           gh release upload "$TAG" "$APK" --clobber
           gh release upload "$TAG" "$SHA" --clobber
+          gh release upload "$TAG" "$CERT" --clobber
