@@ -61,6 +61,16 @@ public final class CutVideoLibrarySync {
                     continue;
                 }
 
+                int restoredSchedules = CutVideoRecoveryManager.restoreIfNeeded(context, token);
+                if (restoredSchedules > 0) {
+                    showStatus(
+                            context,
+                            "Restauration Cut Vidéo — " + restoredSchedules
+                                    + " programmation" + (restoredSchedules > 1 ? "s" : "") + " récupérée"
+                                    + (restoredSchedules > 1 ? "s" : "")
+                    );
+                }
+
                 JSONObject snapshot;
                 try {
                     snapshot = buildSnapshot(context);
