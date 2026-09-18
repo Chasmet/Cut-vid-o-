@@ -131,8 +131,13 @@ jobs:
           ALIGNED_APK="$RUNNER_TEMP/cut-video-aligned.apk"
           FINAL_APK="dist/Cut-Video-v${APP_VERSION}.apk"
 
+          KEY_DER="$RUNNER_TEMP/cutvideo-release-key.pk8"
+          CERT_DER="$RUNNER_TEMP/cutvideo-release-cert.der"
+          openssl pkcs8 -topk8 -nocrypt -in "$CUTVIDEO_SIGNING_PRIVATE_KEY" -outform DER -out "$KEY_DER"
+          openssl x509 -in "$CUTVIDEO_SIGNING_CERTIFICATE" -outform DER -out "$CERT_DER"
+
           "$ANDROID_HOME/build-tools/36.0.0/zipalign" -p -f 4 "$UNSIGNED_APK" "$ALIGNED_APK"
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign             --key "$CUTVIDEO_SIGNING_PRIVATE_KEY"             --cert "$CUTVIDEO_SIGNING_CERTIFICATE"             --out "$FINAL_APK"             "$ALIGNED_APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign             --key "$KEY_DER"             --cert "$CERT_DER"             --out "$FINAL_APK"             "$ALIGNED_APK"
 
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$FINAL_APK"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$FINAL_APK"             | sed -n 's/^Signer #1 certificate SHA-256 digest: //p'             > dist/Cut-Video-signing-cert-sha256.txt
