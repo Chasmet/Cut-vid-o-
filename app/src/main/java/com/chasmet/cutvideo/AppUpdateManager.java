@@ -37,6 +37,7 @@ public final class AppUpdateManager {
     private static final String KEY_LAST_AUTO_CHECK = "last_auto_check";
     private static final String KEY_PENDING_VERSION = "pending_version";
     private static final String KEY_PENDING_URL = "pending_url";
+    private static final String KEY_MCP_UPDATE_REQUESTED = "mcp_update_requested";
     private static final long AUTO_CHECK_INTERVAL_MS = 6L * 60L * 60L * 1000L;
 
     public interface Callback {
@@ -48,6 +49,23 @@ public final class AppUpdateManager {
 
     public static void check(Activity activity, boolean interactive, Callback callback) {
         fetchLatest(activity, true, interactive, callback);
+    }
+
+    public static void requestUpdateFromMcp(Context context) {
+        context.getApplicationContext()
+                .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_MCP_UPDATE_REQUESTED, true)
+                .apply();
+    }
+
+    public static void consumeMcpUpdateRequest(Activity activity) {
+        SharedPreferences preferences = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (!preferences.getBoolean(KEY_MCP_UPDATE_REQUESTED, false)) return;
+        preferences.edit().remove(KEY_MCP_UPDATE_REQUESTED).apply();
+        check(activity, true, (message, updateAvailable) -> {
+            // Le dialogue de mise à jour gère directement la suite.
+        });
     }
 
     public static void checkAutomatically(Activity activity) {
