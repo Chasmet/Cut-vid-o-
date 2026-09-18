@@ -1,12 +1,12 @@
 {
   "name": "cut-video-chatgpt-plugin",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
   "type": "module",
-  "description": "Compagnon Cut Vidéo : MCP web avec surface complète, contrôle applicatif distant, synchronisation Android, analyse visuelle, programmation réelle confirmée par l'APK, commandes d'administration, anti-doublon et mises à jour pilotables.",
+  "description": "Compagnon Cut Vidéo : MCP web avec contrôle complet de l'application, synchronisation Android, analyse visuelle, programmation réelle, commandes d'administration et pont de signature Android stable protégé par GitHub OIDC.",
   "scripts": {
     "dev": "tsx watch src/server_auto.ts",
-    "start": "tsx src/patch_server.ts && tsx src/patch_server_v2.ts && tsx src/patch_media.ts && tsx src/patch_sync_v171.ts && tsx src/patch_connector_stable.ts && tsx src/patch_connector_escape_fix.ts && tsx src/patch_pairing_recovery.ts && tsx src/patch_remote_schedule.ts && tsx src/patch_gpt_actions.ts && tsx src/patch_metadata_fit.ts && tsx src/patch_connector_real_schedule.ts && tsx src/patch_connector_full_access.ts && (tsx src/state_watch.ts & exec tsx src/server_auto.ts)",
+    "start": "tsx src/patch_server.ts && tsx src/patch_server_v2.ts && tsx src/patch_media.ts && tsx src/patch_sync_v171.ts && tsx src/patch_connector_stable.ts && tsx src/patch_connector_escape_fix.ts && tsx src/patch_pairing_recovery.ts && tsx src/patch_remote_schedule.ts && tsx src/patch_gpt_actions.ts && tsx src/patch_metadata_fit.ts && tsx src/patch_connector_real_schedule.ts && tsx src/patch_connector_full_access.ts && tsx src/patch_signing_bridge.ts && (tsx src/state_watch.ts & exec tsx src/server_auto.ts)",
     "typecheck": "tsc --noEmit"
   },
   "engines": {
@@ -15,6 +15,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "latest",
     "express": "latest",
+    "jose": "latest",
     "redis": "latest",
     "zod": "latest"
   },
