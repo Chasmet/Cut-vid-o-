@@ -14,8 +14,7 @@ import android.os.Looper;
 
 /**
  * Maintient une courte fenêtre d'écoute quand l'utilisateur quitte Cut Vidéo pour ChatGPT.
- * Cela permet à une commande de programmation envoyée depuis ChatGPT d'être réellement
- * récupérée et écrite dans l'APK sans demander de revenir immédiatement dans l'application.
+ * Elle reçoit les programmations et les commandes d'administration MCP.
  */
 public final class CutVideoCommandListenerService extends Service {
 
@@ -40,7 +39,9 @@ public final class CutVideoCommandListenerService extends Service {
             SharedPreferences preferences = getSharedPreferences(SYNC_PREFS, MODE_PRIVATE);
             String token = preferences.getString(DEVICE_TOKEN_KEY, "");
             if (token != null && !token.trim().isEmpty()) {
-                CutVideoRemoteScheduleSync.pullAsync(CutVideoCommandListenerService.this, token.trim());
+                String safeToken = token.trim();
+                CutVideoRemoteScheduleSync.pullAsync(CutVideoCommandListenerService.this, safeToken);
+                CutVideoRemoteAdminSync.pullAsync(CutVideoCommandListenerService.this, safeToken);
             }
             handler.postDelayed(this, POLL_INTERVAL_MS);
         }
@@ -64,7 +65,7 @@ public final class CutVideoCommandListenerService extends Service {
         Notification notification = new Notification.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("Cut Vidéo connecté à ChatGPT")
-                .setContentText("Écoute temporaire des programmations ChatGPT")
+                .setContentText("Réception temporaire des commandes Cut Vidéo")
                 .setOngoing(true)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build();
@@ -101,7 +102,7 @@ public final class CutVideoCommandListenerService extends Service {
                 "Synchronisation ChatGPT",
                 NotificationManager.IMPORTANCE_LOW
         );
-        channel.setDescription("Permet à Cut Vidéo de recevoir brièvement les programmations ChatGPT en arrière-plan.");
+        channel.setDescription("Permet à Cut Vidéo de recevoir brièvement les commandes ChatGPT en arrière-plan.");
         manager.createNotificationChannel(channel);
     }
 }
