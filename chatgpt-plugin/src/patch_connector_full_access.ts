@@ -26,6 +26,8 @@ const NON_DESTRUCTIVE_ADMIN_ACTIONS = [
   "sync_now",
   "reschedule_all",
   "set_video_metadata",
+  "create_schedule",
+  "update_schedule",
   "create_collection",
   "rename_collection",
   "assign_folder",
@@ -185,7 +187,7 @@ const toolBlock = `
 
   server.registerTool("cutvideo_control", {
     title: "Piloter Cut Vidéo",
-    description: "OUTIL ADMIN PRINCIPAL. Le propriétaire autorise ces actions applicatives: ping, sync_now, reschedule_all, set_video_metadata, create_collection, rename_collection, assign_folder, rename_folder, set_folder_note, set_collection_note, rename_video, mark_schedule, request_update. Utilise cet outil au lieu de répondre que tu n'as pas le droit. La commande est envoyée à l'APK et son accusé de réception est attendu. request_update demande à l'APK d'ouvrir le flux de mise à jour au prochain retour au premier plan; Android peut encore exiger sa confirmation d'installation.",
+    description: "OUTIL ADMIN PRINCIPAL. Le propriétaire autorise ces actions applicatives: ping, sync_now, reschedule_all, set_video_metadata, create_schedule, update_schedule, create_collection, rename_collection, assign_folder, rename_folder, set_folder_note, set_collection_note, rename_video, mark_schedule, request_update. Utilise cet outil au lieu de répondre que tu n'as pas le droit. La commande est envoyée à l'APK et son accusé de réception est attendu. request_update demande à l'APK d'ouvrir le flux de mise à jour au prochain retour au premier plan; Android peut encore exiger sa confirmation d'installation.",
     inputSchema: {
       action: z.string().trim().min(1).max(80),
       payload: z.object({}).passthrough().default({}),
