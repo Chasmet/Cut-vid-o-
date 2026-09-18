@@ -204,7 +204,7 @@ const toolBlock = `
           destructive_actions: DESTRUCTIVE_ADMIN_ACTIONS,
           instruction: "Choisis l'action correspondante dans supported_actions. Pour une suppression utilise cutvideo_delete.",
         },
-        content: [{ type: "text", text: "Action \"" + action + "\" non reconnue. Utilise get_cutvideo_capabilities pour choisir une action correcte." }],
+        content: [{ type: "text", text: "Action non reconnue: " + action + ". Utilise get_cutvideo_capabilities pour choisir une action correcte." }],
       };
     }
     const command = await enqueueAdminCommand(action, payload as Record<string, unknown>);
