@@ -6,20 +6,6 @@ let source = await readFile(path, "utf8");
 const helperMarker = "function createFullServer(): McpServer {";
 const helpers = `
 const LIBRARY_RECOVERY_KEY = "cutvideo:library-recovery:v1";
-
-async function preserveCurrentLibraryRecovery(): Promise<void> {
-  const client = await getRedis();
-  const current = await client.get(LIBRARY_KEY);
-  if (!current) return;
-  try {
-    const parsed = librarySchema.safeParse(JSON.parse(current));
-    if (parsed.success && parsed.data.schedules.length > 0) {
-      await client.set(LIBRARY_RECOVERY_KEY, JSON.stringify(parsed.data));
-    }
-  } catch {
-    // Never block the MCP because of a malformed historical snapshot.
-  }
-}
 `;
 
 if (!source.includes("const LIBRARY_RECOVERY_KEY")) {
@@ -32,7 +18,10 @@ const saveReplacement = `    if (parsed.data.schedules.length > 0) {
       await client.set(LIBRARY_RECOVERY_KEY, JSON.stringify(parsed.data));
     }
     await client.set(LIBRARY_KEY, JSON.stringify(parsed.data));`;
-if (source.includes(saveMarker) && !source.includes("parsed.data.schedules.length > 0")) {
+if (
+  source.includes(saveMarker)
+  && !source.includes("await client.set(LIBRARY_RECOVERY_KEY, JSON.stringify(parsed.data));")
+) {
   source = source.replace(saveMarker, saveReplacement);
 }
 
@@ -44,18 +33,36 @@ app.get("/api/library/recovery", async (req, res) => {
       res.status(401).json({ error: "Unauthorized Cut Video device" });
       return;
     }
+
     const client = await getRedis();
-    const raw = await client.get(LIBRARY_RECOVERY_KEY) ?? await client.get(LIBRARY_KEY);
+    let raw = await client.get(LIBRARY_RECOVERY_KEY);
+
+    // First migration: preserve the last synchronized 1.x snapshot before the
+    // freshly installed APK can ever replace LIBRARY_KEY with an empty schedule list.
+    if (!raw) {
+      const currentRaw = await client.get(LIBRARY_KEY);
+      if (currentRaw) {
+        const currentParsed = librarySchema.safeParse(JSON.parse(currentRaw));
+        if (currentParsed.success && currentParsed.data.schedules.length > 0) {
+          raw = JSON.stringify(currentParsed.data);
+          await client.set(LIBRARY_RECOVERY_KEY, raw);
+        }
+      }
+    }
+
     if (!raw) {
       res.status(404).json({ error: "No Cut Video recovery snapshot" });
       return;
     }
+
     const parsed = librarySchema.safeParse(JSON.parse(raw));
     if (!parsed.success) {
       res.status(404).json({ error: "No valid Cut Video recovery snapshot" });
       return;
     }
+
     res.setHeader("Cache-Control", "no-store, max-age=0");
+    res.setHeader("Pragma", "no-cache");
     res.json(parsed.data);
   } catch (error) {
     console.error("Library recovery fetch failed", error);
@@ -69,14 +76,5 @@ if (!source.includes('app.get("/api/library/recovery"')) {
   source = source.replace(endpointMarker, recoveryEndpoint + "\n" + endpointMarker);
 }
 
-const listenMarker = "app.listen(PORT, () => {";
-if (!source.includes("preserveCurrentLibraryRecovery().catch")) {
-  if (!source.includes(listenMarker)) throw new Error("Recovery patch: listen marker missing");
-  source = source.replace(
-    listenMarker,
-    'void preserveCurrentLibraryRecovery().catch((error) => console.error("Initial recovery snapshot failed", error));\n\n' + listenMarker,
-  );
-}
-
 await writeFile(path, source, "utf8");
-console.log("CUTVIDEO_LIBRARY_RECOVERY_PATCH applied: persistent last-good schedule snapshot + authenticated restore");
+console.log("CUTVIDEO_LIBRARY_RECOVERY_PATCH applied: last-good schedules preserved + authenticated restore");
