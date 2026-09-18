@@ -27,7 +27,7 @@ public final class MainActivity extends AppCompatActivity {
     private final Runnable remotePoll = new Runnable() {
         @Override
         public void run() {
-            pullRemoteScheduleCommands();
+            pullRemoteCommands();
             remotePollHandler.postDelayed(this, REMOTE_POLL_INTERVAL_MS);
         }
     };
@@ -57,6 +57,7 @@ public final class MainActivity extends AppCompatActivity {
         super.onResume();
 
         AppUpdateManager.resumePendingUpdate(this);
+        AppUpdateManager.consumeMcpUpdateRequest(this);
         AppUpdateManager.checkAutomatically(this);
 
         CutVideoCommandListenerService.stopListening(this);
@@ -72,11 +73,13 @@ public final class MainActivity extends AppCompatActivity {
         super.onPause();
     }
 
-    private void pullRemoteScheduleCommands() {
+    private void pullRemoteCommands() {
         SharedPreferences preferences = getSharedPreferences(SYNC_PREFS, MODE_PRIVATE);
         String token = preferences.getString(DEVICE_TOKEN_KEY, "");
         if (token == null || token.trim().isEmpty()) return;
-        CutVideoRemoteScheduleSync.pullAsync(this, token.trim());
+        String safeToken = token.trim();
+        CutVideoRemoteScheduleSync.pullAsync(this, safeToken);
+        CutVideoRemoteAdminSync.pullAsync(this, safeToken);
     }
 
     private void openVideoPicker() {
