@@ -53,15 +53,14 @@ public final class MainActivity extends AppCompatActivity {
         mediaPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 granted -> {
-                    if (granted) {
-                        startLibrarySyncAndRemotePolling();
-                    } else {
+                    if (!granted) {
                         Toast.makeText(
                                 this,
-                                "Autorise l'accès aux vidéos pour récupérer les anciens fichiers Cut Vidéo.",
+                                "Sans accès aux vidéos, les anciens fichiers Cut Vidéo peuvent ne pas être récupérés.",
                                 Toast.LENGTH_LONG
                         ).show();
                     }
+                    startLibrarySyncAndRemotePolling();
                 }
         );
 
@@ -81,12 +80,10 @@ public final class MainActivity extends AppCompatActivity {
 
         CutVideoCommandListenerService.stopListening(this);
 
-        if (!hasMediaReadPermission()) {
+        if (!hasMediaReadPermission() && !mediaPermissionRequested) {
             remotePollHandler.removeCallbacks(remotePoll);
-            if (!mediaPermissionRequested) {
-                mediaPermissionRequested = true;
-                mediaPermissionLauncher.launch(requiredMediaPermission());
-            }
+            mediaPermissionRequested = true;
+            mediaPermissionLauncher.launch(requiredMediaPermission());
             return;
         }
 
