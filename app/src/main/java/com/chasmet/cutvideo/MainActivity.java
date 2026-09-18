@@ -1,7 +1,9 @@
 package com.chasmet.cutvideo;
 
+import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -12,6 +14,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.chasmet.cutvideo.databinding.ActivityMainBinding;
 
@@ -23,6 +26,8 @@ public final class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
     private ActivityResultLauncher<PickVisualMediaRequest> videoPicker;
+    private ActivityResultLauncher<String> mediaPermissionLauncher;
+    private boolean mediaPermissionRequested;
     private final Handler remotePollHandler = new Handler(Looper.getMainLooper());
     private final Runnable remotePoll = new Runnable() {
         @Override
@@ -45,6 +50,20 @@ public final class MainActivity extends AppCompatActivity {
                 new ActivityResultContracts.PickVisualMedia(),
                 this::handleSelectedVideo
         );
+        mediaPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                granted -> {
+                    if (granted) {
+                        startLibrarySyncAndRemotePolling();
+                    } else {
+                        Toast.makeText(
+                                this,
+                                "Autorise l'accès aux vidéos pour récupérer les anciens fichiers Cut Vidéo.",
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+                }
+        );
 
         binding.importVideoCard.setOnClickListener(view -> openVideoPicker());
         binding.savedVideosCard.setOnClickListener(view -> startActivity(new Intent(this, SavedVideosActivity.class)));
@@ -61,9 +80,17 @@ public final class MainActivity extends AppCompatActivity {
         AppUpdateManager.checkAutomatically(this);
 
         CutVideoCommandListenerService.stopListening(this);
-        CutVideoLibrarySync.syncAsync(this);
-        remotePollHandler.removeCallbacks(remotePoll);
-        remotePollHandler.postDelayed(remotePoll, 4_000L);
+
+        if (!hasMediaReadPermission()) {
+            remotePollHandler.removeCallbacks(remotePoll);
+            if (!mediaPermissionRequested) {
+                mediaPermissionRequested = true;
+                mediaPermissionLauncher.launch(requiredMediaPermission());
+            }
+            return;
+        }
+
+        startLibrarySyncAndRemotePolling();
     }
 
     @Override
@@ -71,6 +98,26 @@ public final class MainActivity extends AppCompatActivity {
         remotePollHandler.removeCallbacks(remotePoll);
         CutVideoCommandListenerService.startListening(this);
         super.onPause();
+    }
+
+    private boolean hasMediaReadPermission() {
+        return ContextCompat.checkSelfPermission(
+                this,
+                requiredMediaPermission()
+        ) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private String requiredMediaPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            return Manifest.permission.READ_MEDIA_VIDEO;
+        }
+        return Manifest.permission.READ_EXTERNAL_STORAGE;
+    }
+
+    private void startLibrarySyncAndRemotePolling() {
+        CutVideoLibrarySync.syncAsync(this);
+        remotePollHandler.removeCallbacks(remotePoll);
+        remotePollHandler.postDelayed(remotePoll, 4_000L);
     }
 
     private void pullRemoteCommands() {
