@@ -33,7 +33,9 @@ public final class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             pullRemoteCommands();
-            remotePollHandler.postDelayed(this, REMOTE_POLL_INTERVAL_MS);
+            if (!launchPendingAutoCut()) {
+                remotePollHandler.postDelayed(this, REMOTE_POLL_INTERVAL_MS);
+            }
         }
     };
 
