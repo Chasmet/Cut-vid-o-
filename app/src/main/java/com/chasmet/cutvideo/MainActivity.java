@@ -33,9 +33,7 @@ public final class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             pullRemoteCommands();
-            if (!launchPendingAutoCut()) {
-                remotePollHandler.postDelayed(this, REMOTE_POLL_INTERVAL_MS);
-            }
+            remotePollHandler.postDelayed(this, REMOTE_POLL_INTERVAL_MS);
         }
     };
 
@@ -81,8 +79,6 @@ public final class MainActivity extends AppCompatActivity {
         AppUpdateManager.checkAutomatically(this);
 
         CutVideoCommandListenerService.stopListening(this);
-
-        if (launchPendingAutoCut()) return;
 
         if (!hasMediaReadPermission() && !mediaPermissionRequested) {
             remotePollHandler.removeCallbacks(remotePoll);
@@ -130,28 +126,6 @@ public final class MainActivity extends AppCompatActivity {
         CutVideoRemoteAdminSync.pullAsync(this, safeToken);
     }
 
-    private boolean launchPendingAutoCut() {
-        CutVideoAutoCut.Pending pending = CutVideoAutoCut.consume(this);
-        if (pending == null) return false;
-        try (android.os.ParcelFileDescriptor descriptor =
-                     getContentResolver().openFileDescriptor(pending.sourceUri, "r")) {
-            if (descriptor == null) throw new java.io.IOException("Source inaccessible");
-        } catch (Exception error) {
-            Toast.makeText(this,
-                    "Decoupage annule : la video source n'est plus accessible. Reimportez-la.",
-                    Toast.LENGTH_LONG).show();
-            return false;
-        }
-        Intent intent = new Intent(this, EditorActivity.class);
-        intent.putExtra(EditorActivity.EXTRA_VIDEO_URI, pending.sourceUri.toString());
-        intent.putExtra(EditorActivity.EXTRA_AUTO_CUT_SECONDS, pending.segmentSeconds);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivity(intent);
-        Toast.makeText(this, "Decoupage automatique : "
-                + pending.segmentSeconds + " s", Toast.LENGTH_SHORT).show();
-        return true;
-    }
-
     private void openVideoPicker() {
         PickVisualMediaRequest request = new PickVisualMediaRequest.Builder()
                 .setMediaType(ActivityResultContracts.PickVisualMedia.VideoOnly.INSTANCE)
@@ -168,7 +142,6 @@ public final class MainActivity extends AppCompatActivity {
             getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
         } catch (SecurityException ignored) {
         }
-        CutVideoAutoCut.rememberImport(this, uri, VideoUtils.displayName(this, uri));
         Intent editor = new Intent(this, EditorActivity.class);
         editor.putExtra(EditorActivity.EXTRA_VIDEO_URI, uri.toString());
         editor.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
