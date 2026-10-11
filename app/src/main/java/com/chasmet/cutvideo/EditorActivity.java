@@ -35,7 +35,6 @@ import java.util.List;
 public final class EditorActivity extends AppCompatActivity {
 
     public static final String EXTRA_VIDEO_URI = "video_uri";
-    public static final String EXTRA_AUTO_CUT_SECONDS = "auto_cut_seconds";
 
     private static final int[] QUICK_DURATIONS_SECONDS = {15, 30, 60, 90};
 
@@ -50,8 +49,6 @@ public final class EditorActivity extends AppCompatActivity {
     private boolean durationReady;
     private boolean syncingCustomDuration;
     private boolean exporting;
-    private int automaticSegmentSeconds;
-    private boolean automaticExportTriggered;
     private Mode selectedMode = Mode.QUICK;
     private VideoExportManager exportManager;
     private AlertDialog exportDialog;
@@ -75,7 +72,6 @@ public final class EditorActivity extends AppCompatActivity {
             return;
         }
         videoUri = Uri.parse(uriValue);
-        automaticSegmentSeconds = getIntent().getIntExtra(EXTRA_AUTO_CUT_SECONDS, 0);
         videoName = VideoUtils.displayName(this, videoUri);
         binding.videoNameText.setText(videoName);
 
@@ -292,15 +288,6 @@ public final class EditorActivity extends AppCompatActivity {
         updateCustomSummary();
         updateTrimSummary();
         setExportEnabled(true);
-        if (automaticSegmentSeconds >= 1 && automaticSegmentSeconds <= 600
-                && !automaticExportTriggered) {
-            automaticExportTriggered = true;
-            selectMode(Mode.CUSTOM);
-            binding.customDurationInput.setText(String.valueOf(automaticSegmentSeconds));
-            binding.getRoot().post(() -> {
-                if (!isFinishing() && !isDestroyed()) startExport();
-            });
-        }
     }
 
     private void selectMode(Mode mode) {

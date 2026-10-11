@@ -7,17 +7,6 @@ description: Gérer automatiquement toutes les vidéos, métadonnées, programma
 
 Utilise ce workflow dès que l'utilisateur demande de gérer, préparer ou programmer ses vidéos Cut Vidéo.
 
-## Découpage dans la vraie application Android, sur demande uniquement
-
-Si l'utilisateur demande de découper **la dernière vidéo qu'il a importée dans Cut Vidéo**, utiliser `cutvideo_control` avec `action: "queue_auto_cut"` et `payload: {"seconds": 30}` (remplacer 30 par la durée demandée, entre 1 et 600). Lorsque le nom de la vidéo est connu, ajouter `video_name` : la commande est refusée si le nom ne correspond pas à la source réellement importée.
-
-- Cette action est réservée à une demande explicite de découpage ; ne l'active jamais dans une simple demande de métadonnées ou de programmation.
-- L'application n'explore ni ne télécharge de vidéos arbitraires : elle exploite seulement la dernière vidéo sélectionnée par l'utilisateur avec le sélecteur Android.
-- Le résultat est une commande **en attente**. Le traitement local Media3 commence automatiquement à la prochaine ouverture de Cut Vidéo, ou pendant qu'il reste affiché lorsque le polling reçoit la commande.
-- Ne jamais prétendre qu'un MP4 a été créé si la commande indique seulement qu'elle est préparée. Vérifier ensuite la synchronisation de la bibliothèque et les fichiers exportés.
-- Une seule commande de découpage peut être en attente à la fois ; elle expire au bout de 24 h. Aucune suppression de vidéo existante.
-- Le rappel de publication social n'est pas une publication validée par les réseaux ; ne jamais prétendre qu'une publication est en ligne sur la seule base d'une programmation.
-
 ## Principe principal
 
 La bibliothèque synchronisée est la source de vérité. L'utilisateur ne doit pas avoir à recopier les dossiers, sous-dossiers ou fichiers déjà présents dans Cut Vidéo.

@@ -136,9 +136,6 @@ public final class CutVideoRemoteAdminSync {
                 case "mark_schedule":
                     return markSchedule(context, payload);
 
-                case "queue_auto_cut":
-                    return queueAutoCut(context, payload);
-
                 case "request_update":
                     AppUpdateManager.requestUpdateFromMcp(context);
                     return CommandResult.ok(
@@ -156,15 +153,6 @@ public final class CutVideoRemoteAdminSync {
                             : message.trim()
             );
         }
-    }
-
-    private static CommandResult queueAutoCut(Context context, JSONObject payload) {
-        int seconds = payload.optInt("seconds", 0);
-        String requested = text(payload, "video_name");
-        String name = CutVideoAutoCut.queue(context, seconds, requested);
-        return CommandResult.ok("Decoupage de " + name + " en morceaux de "
-                + seconds + " secondes prepare. L'export commencera a la prochaine "
-                + "ouverture de Cut Video sur le telephone.");
     }
 
     private static CommandResult setVideoMetadata(Context context, JSONObject payload) {
